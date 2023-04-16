@@ -1,12 +1,15 @@
 use egui::mutex::RwLock;
 use rusqlite::*;
-use rusqlite::{params, Connection, Result};
+use rusqlite::{Connection, Result};
 use std::fmt::{Debug, Display};
+
 /// this module manage keys,
 ///
 ///
-use std::io::*;
 use std::sync::Arc;
+
+#[allow(unused_imports)]
+use log::{debug, error, info, log_enabled, Level};
 
 pub struct Database {
     db: Arc<RwLock<Connection>>,
@@ -40,26 +43,23 @@ impl Debug for Key {
 
 impl Database {
     pub fn open_database() -> Result<Database> {
+        
         let conn = Connection::open_with_flags(
             "keys.db",
             OpenFlags::SQLITE_OPEN_READ_WRITE
                 | OpenFlags::SQLITE_OPEN_CREATE
                 | OpenFlags::SQLITE_OPEN_URI
                 | OpenFlags::SQLITE_OPEN_NO_MUTEX,
-        )
-        .expect("Error in opening the database");
+        )?;
 
-        match conn.execute(
-            "CREATE TABLE all_keys (
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS all_keys (
                 name TEXT NOT NULL,
                 sha1 TEXT NOT NULL,
                 public_key BLOB
             )",
             (), // empty list of parameters.
-        ) {
-            Ok(result) => {}
-            Err(e) => println!("table exists : {}", e),
-        };
+        )?;
 
         Ok(Database {
             db: Arc::new(RwLock::new(conn)),
@@ -79,7 +79,8 @@ impl Database {
     pub fn get_all(&self) -> Result<Vec<Key>> {
         let mut v: Vec<Key> = Vec::new();
         let c = self.db.read();
-        let mut stmt = c.prepare("SELECT rowid, name, sha1, public_key FROM all_keys")?;
+        let mut stmt = 
+            c.prepare("SELECT rowid, name, sha1, public_key FROM all_keys")?;
         let keys_iter = stmt.query_map([], |row| {
             Ok(Key {
                 rowid: row.get(0)?,
@@ -93,7 +94,7 @@ impl Database {
             if let Err(e) = k {
                 return Err(e);
             } else {
-                v.push(k.unwrap());
+                v.push(k?);
             }
         }
 

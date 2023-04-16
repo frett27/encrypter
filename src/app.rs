@@ -1,47 +1,47 @@
-use std::error::Error;
+use log::{debug, error, info};
+
 use std::fmt;
 use std::path::Path;
 
 use crate::encrypt::encrypt_file_with_inmemory_key;
 use crate::folder::*;
-use crate::keys_management;
+use crate::Error;
+
 use crate::keys_management::*;
 use egui::Color32;
-use egui::{style::Spacing, Context, RichText, Ui, Vec2};
+use egui::{Context, RichText, Ui, Vec2};
 use egui_extras::{Size, StripBuilder};
 
 use flowync::error::Cause;
-use flowync::{
-    error::{Compact, IOError},
-    CompactFlower, CompactHandle, Flower, IntoResult,
-};
+use flowync::Flower;
 
-use isahc::http::StatusCode;
 use isahc::prelude::*;
 
 type TypedFlower = Flower<String, String>;
 
 #[derive(Debug, Clone)]
 struct AppError {
-    _msg: String
+    _msg: String,
 }
 
 impl AppError {
-    pub fn new<T>(msg:T) -> AppError 
-    where T: Into<String>
+    pub fn new<T>(msg: T) -> AppError
+    where
+        T: Into<String>,
     {
-        
         AppError {
-            _msg: msg.into().clone()
+            _msg: msg.into().clone(),
         }
     }
 }
+
+
 impl fmt::Display for AppError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Application Error : {}", &self._msg)
     }
 }
-impl Error for AppError {}
+impl std::error::Error for AppError {}
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -220,26 +220,27 @@ impl EncrypterApp {
     }
 
     /// recursive function to display files
-    fn display_tree(files_folder: &mut FolderNode, ui: &mut Ui) {
+    fn display_tree(files_folder: &mut FolderNode, ui: &mut Ui) -> crate::Result<()> {
         for ele in &mut files_folder.subfolders {
             let element_name = String::from(ele.name());
             if ele.is_folder {
                 let r = ui.collapsing(element_name, |ui| {
-                    // ui.horizontal_wrapped(|ui| {
                     ui.spacing_mut().item_spacing.x = 0.0;
 
-                    EncrypterApp::display_tree(ele, ui);
+                    if let Err(e) = EncrypterApp::display_tree(ele, ui) {
+                        error!("error in displaying sub tree {}", e);
+                    }
                 });
                 if r.fully_open() {
                     if !ele.expanded {
-                        expand(ele);
+                        expand(ele)?;
                     }
                 }
             } else {
                 ui.checkbox(&mut ele.selected, element_name);
-                // ui.label(ele.name());
             }
         }
+        Ok(())
     }
 
     fn construct_list(file_folder: &FolderNode, ui: &mut Ui) {
@@ -251,29 +252,33 @@ impl EncrypterApp {
         }
     }
 
-    fn crypt_selected(file_folder: &FolderNode, sha1: &String, key: &[u8]) {
+    fn crypt_selected(file_folder: &FolderNode, sha1: &String, key: &[u8]) -> crate::Result<()> {
         if file_folder.selected {
             let filename = file_folder.name().clone().to_string();
 
-            if !Path::new(&sha1)
-                .try_exists()
-                .expect("cannot check the output folder exists")
-            {
-                std::fs::create_dir(sha1).expect("cannot create output directory");
+            if !Path::new(&sha1).try_exists()? {
+                std::fs::create_dir(sha1)?;
             }
 
-            let output_filename: String = Path::new(&sha1)
-                .join(filename + "x".into())
+            let o_conversion = Path::new(&sha1)
+                .join(filename.clone() + "x".into())
                 .into_os_string()
-                .into_string()
-                .expect("cannot convert name");
-            encrypt_file_with_inmemory_key(&file_folder.path.clone(), &output_filename, key);
-            println!(" file {}, encrypted", &output_filename);
+                .into_string();
+
+            if let Ok(s) = o_conversion {
+                let output_filename: String = s;
+                encrypt_file_with_inmemory_key(&file_folder.path.clone(), &output_filename, key)?;
+                info!(" file {}, encrypted", &output_filename);
+            } else {
+                let msg = format!("fail to create file for {}", &filename);
+                return Err(AppError::new(msg).into());
+            }
         }
 
         for elem in &file_folder.subfolders {
-            EncrypterApp::crypt_selected(&elem, &sha1, &key);
+            EncrypterApp::crypt_selected(&elem, &sha1, &key)?;
         }
+        Ok(())
     }
 
     fn download_key(flower: &TypedFlower, sha1: String) {
@@ -299,13 +304,19 @@ impl EncrypterApp {
                             // Set result and then extract later.
                             handle.set_result(Ok(returned_elements));
                         } else {
-                            handle.set_result(Err(Box::new(AppError::new("Erreur dans la récupération du contenu de la clé"))));
+                            handle.set_result(Err(Box::new(AppError::new(
+                                "Erreur dans la récupération du contenu de la clé",
+                            ))));
                         }
                     } else {
-                        handle.set_result(Err(Box::new(AppError::new("Le serveur a retourné un pb, la clé n'existe peut être pas"))));
+                        handle.set_result(Err(Box::new(AppError::new(
+                            "Le serveur a retourné un pb, la clé n'existe peut être pas",
+                        ))));
                     }
                 } else {
-                    handle.set_result(Err(Box::new(AppError::new("Erreur dans le lancement de la requete"))));
+                    handle.set_result(Err(Box::new(AppError::new(
+                        "Erreur dans le lancement de la requete",
+                    ))));
                 }
             }
         });
@@ -322,8 +333,8 @@ impl eframe::App for EncrypterApp {
         let Self {
             label,
             value,
-            selected: MyEnum,
-            files_folder: FolderNode,
+            selected,
+            files_folder,
             db,
             last_message,
             is_error,
@@ -348,8 +359,6 @@ impl eframe::App for EncrypterApp {
         egui::SidePanel::left("side_panel")
             .exact_width(500.0)
             .show(ctx, |ui| {
-                // ui.heading("Files");
-
                 egui::ScrollArea::both().show(ui, |ui| {
                     StripBuilder::new(ui)
                         .size(Size::remainder())
@@ -362,13 +371,6 @@ impl eframe::App for EncrypterApp {
             });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            // ui.horizontal(|ui| {
-            //     ui.label("essai");
-            //     if (ui.button(RichText::new("delete")).drag_started()) {
-            //         ui.label("clicked");
-            //     }
-            // });
-
             ui.horizontal(|ui| {
                 egui::ComboBox::from_label("Clés de cryptage")
                     .selected_text(format!("{:?}", self.selected))
@@ -397,17 +399,25 @@ impl eframe::App for EncrypterApp {
                 );
                 if let Some(selected_key) = &self.selected {
                     if ui.add(button_crypt).clicked() {
-                        println!("Cryptage des fichiers");
+                        info!("Cryptage des fichiers");
 
                         if let Some(kvalue) = &selected_key.public_key {
-                            EncrypterApp::crypt_selected(
+                            match EncrypterApp::crypt_selected(
                                 &self.files_folder,
                                 &selected_key.sha1,
                                 kvalue,
-                            );
-                            println!("Fin de Cryptage des fichiers");
-                            self.last_message = "Fichier cryptés avec succès".into();
-                            self.is_error = false;
+                            ) {
+                                Ok(_) => {
+                                    println!("Fin de Cryptage des fichiers");
+                                    self.last_message = "Fichier cryptés avec succès".into();
+                                    self.is_error = false;
+                                }
+                                Err(e) => {
+                                    self.last_message = "Erreur dans le cryptage".into();
+                                    self.is_error = true;
+                                    error!("Error in crypt : {:?}", e);
+                                }
+                            };
                         } else {
                             self.last_message = "no public key".into();
                             self.is_error = true;

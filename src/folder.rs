@@ -4,6 +4,8 @@ use std::path::Path;
 
 use thiserror::Error;
 
+use log::{debug, error, info, log_enabled, Level};
+
 #[derive(thiserror::Error, Debug)]
 pub enum FolderError {
     #[error("data store disconnected")]
@@ -32,6 +34,7 @@ impl FolderNode {
 }
 
 pub fn expand(folder: &mut FolderNode) -> Result<(), FolderError> {
+    debug!("expanding {:?}", &folder);
     let p: &Path = Path::new(&folder.path);
     let mut entries: Vec<Box<FolderNode>> = read_dir(p)
         .map(|res|  {

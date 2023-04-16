@@ -1,10 +1,15 @@
 #![warn(clippy::all, rust_2018_idioms)]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
+
+use log::{info};
+
 // When compiling natively:
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
-    // Log to stdout (if you run with `RUST_LOG=debug`).
+    // env_logger::init();
+
+    info!("starting program");
     tracing_subscriber::fmt::init();
 
     let mut native_options = eframe::NativeOptions::default();
@@ -16,6 +21,7 @@ fn main() {
     );
 }
 
+
 // when compiling to web using trunk.
 #[cfg(target_arch = "wasm32")]
 fn main() {
@@ -24,6 +30,7 @@ fn main() {
 
     // Redirect tracing to console.log and friends:
     tracing_wasm::set_as_global_default();
+
 
     let web_options = eframe::WebOptions::default();
 
