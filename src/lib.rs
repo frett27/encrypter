@@ -6,3 +6,5 @@ pub use app::EncrypterApp;
 pub mod encrypt;
 
 pub mod folder;
+
+pub mod keys_management;

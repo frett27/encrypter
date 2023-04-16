@@ -7,13 +7,13 @@ mod test_encryption {
 
     #[test]
     fn test_encrypt() {
-        let midi_file: String =  "113-BennyHill.mid".into();
+        let midi_file: String =  "lalala1.mid".into();
         println!("encrypt midi file {}", &midi_file);
-        encrypt_file(midi_file.clone(),
-                 "public.key.pem".into());
+        encrypt_file(&midi_file.clone(),
+                 &"test_public.key.pem".into());
 
         decrypt_file(midi_file + "x".into(), 
-            "private.key.pem".into(),
+            "test_private.key.pem".into(),
         "30d9690cc085429a1d0a3ae787932bf1518a1798".into());
     }
 
@@ -21,11 +21,11 @@ mod test_encryption {
     fn test_encrypt2() {
         let midi_file: String =  "t".into();
         println!("encrypt midi file {}", &midi_file);
-        encrypt_file(midi_file.clone(),
-                 "public.key.pem".into());
+        encrypt_file(&midi_file.clone(),
+                 &"test_public.key.pem".into());
 
         decrypt_file(midi_file + "x".into(), 
-        "private.key.pem".into(),
+        "test_private.key.pem".into(),
         "30d9690cc085429a1d0a3ae787932bf1518a1798".into());
     }
 }

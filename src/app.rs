@@ -1,13 +1,47 @@
+use std::error::Error;
+use std::fmt;
+use std::path::Path;
+
+use crate::encrypt::encrypt_file_with_inmemory_key;
 use crate::folder::*;
-use egui::{style::Spacing, RichText, Ui, Vec2, Context};
+use crate::keys_management;
+use crate::keys_management::*;
+use egui::Color32;
+use egui::{style::Spacing, Context, RichText, Ui, Vec2};
 use egui_extras::{Size, StripBuilder};
 
-#[derive(PartialEq, Clone, Debug)]
-pub enum MyEnum {
-    First,
-    Second,
-    Third,
+use flowync::error::Cause;
+use flowync::{
+    error::{Compact, IOError},
+    CompactFlower, CompactHandle, Flower, IntoResult,
+};
+
+use isahc::http::StatusCode;
+use isahc::prelude::*;
+
+type TypedFlower = Flower<String, String>;
+
+#[derive(Debug, Clone)]
+struct AppError {
+    _msg: String
 }
+
+impl AppError {
+    pub fn new<T>(msg:T) -> AppError 
+    where T: Into<String>
+    {
+        
+        AppError {
+            _msg: msg.into().clone()
+        }
+    }
+}
+impl fmt::Display for AppError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Application Error : {}", &self._msg)
+    }
+}
+impl Error for AppError {}
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -19,11 +53,27 @@ pub struct EncrypterApp {
     // this how you opt-out of serialization of a member
     #[serde(skip)]
     value: f32,
-    #[serde(skip)]  
-    selected: MyEnum,
+
+    #[serde(skip)]
+    selected: Option<Key>,
 
     #[serde(skip)]
     files_folder: FolderNode,
+
+    #[serde(skip)]
+    db: Database,
+
+    #[serde(skip)]
+    last_message: String,
+    #[serde(skip)]
+    is_error: bool,
+
+    is_add_opened: bool,
+    key_name: String,
+    key_sha1_input: String,
+
+    #[serde(skip)]
+    flower: TypedFlower,
 }
 
 impl Default for EncrypterApp {
@@ -33,8 +83,10 @@ impl Default for EncrypterApp {
             is_folder: true,
             path: ".".into(),
             subfolders: vec![],
-            selected:false,
+            selected: false,
         };
+
+        let db = Database::open_database().expect("cannot open database");
 
         // expand the first level
         expand(&mut r);
@@ -43,8 +95,15 @@ impl Default for EncrypterApp {
             // Example stuff:
             label: "Encrypter".to_owned(),
             value: 2.7,
-            selected: MyEnum::Second,
+            selected: None,
             files_folder: r,
+            db: db,
+            last_message: "".to_owned(),
+            is_error: false,
+            is_add_opened: false,
+            key_name: "".to_owned(),
+            key_sha1_input: "".to_owned(),
+            flower: TypedFlower::new(1),
         }
     }
 }
@@ -62,7 +121,6 @@ impl EncrypterApp {
 
         EncrypterApp::install_style(ctx);
 
-
         if let Some(storage) = cc.storage {
             return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
         }
@@ -74,7 +132,6 @@ impl EncrypterApp {
      * install style
      */
     fn install_style(ctx: &mut Context) {
-
         use egui::FontFamily::Proportional;
         use egui::FontId;
         use egui::TextStyle::*;
@@ -160,7 +217,6 @@ impl EncrypterApp {
 
         // Tell egui to use these fonts:
         ctx.set_fonts(fonts);
-
     }
 
     /// recursive function to display files
@@ -173,7 +229,6 @@ impl EncrypterApp {
                     ui.spacing_mut().item_spacing.x = 0.0;
 
                     EncrypterApp::display_tree(ele, ui);
-                   
                 });
                 if r.fully_open() {
                     if !ele.expanded {
@@ -189,14 +244,72 @@ impl EncrypterApp {
 
     fn construct_list(file_folder: &FolderNode, ui: &mut Ui) {
         if file_folder.selected {
-            ui.label(file_folder.clone().name());
-           
+            ui.label(RichText::new(file_folder.clone().name()).color(Color32::DARK_BLUE));
         }
         for elem in &file_folder.subfolders {
             EncrypterApp::construct_list(&elem, ui);
         }
     }
 
+    fn crypt_selected(file_folder: &FolderNode, sha1: &String, key: &[u8]) {
+        if file_folder.selected {
+            let filename = file_folder.name().clone().to_string();
+
+            if !Path::new(&sha1)
+                .try_exists()
+                .expect("cannot check the output folder exists")
+            {
+                std::fs::create_dir(sha1).expect("cannot create output directory");
+            }
+
+            let output_filename: String = Path::new(&sha1)
+                .join(filename + "x".into())
+                .into_os_string()
+                .into_string()
+                .expect("cannot convert name");
+            encrypt_file_with_inmemory_key(&file_folder.path.clone(), &output_filename, key);
+            println!(" file {}, encrypted", &output_filename);
+        }
+
+        for elem in &file_folder.subfolders {
+            EncrypterApp::crypt_selected(&elem, &sha1, &key);
+        }
+    }
+
+    fn download_key(flower: &TypedFlower, sha1: String) {
+        std::thread::spawn({
+            let handle = flower.handle();
+            // Activate
+            handle.activate();
+            move || {
+                handle.send("start".into());
+
+                let response_result = isahc::get(
+                    "http://or1.frett27.net/k/".to_string() + &sha1.clone() + "/public.key.pem",
+                );
+
+                if response_result.is_ok() {
+                    let mut response = response_result.unwrap();
+                    if response.status().is_success() {
+                        let text = response.text(); // read response
+
+                        if text.is_ok() {
+                            let returned_elements = text.unwrap();
+
+                            // Set result and then extract later.
+                            handle.set_result(Ok(returned_elements));
+                        } else {
+                            handle.set_result(Err(Box::new(AppError::new("Erreur dans la récupération du contenu de la clé"))));
+                        }
+                    } else {
+                        handle.set_result(Err(Box::new(AppError::new("Le serveur a retourné un pb, la clé n'existe peut être pas"))));
+                    }
+                } else {
+                    handle.set_result(Err(Box::new(AppError::new("Erreur dans le lancement de la requete"))));
+                }
+            }
+        });
+    }
 }
 
 impl eframe::App for EncrypterApp {
@@ -205,20 +318,20 @@ impl eframe::App for EncrypterApp {
         eframe::set_value(storage, eframe::APP_KEY, self);
     }
 
-    /// Called each time the UI needs repainting, which may be many times per second.
-    /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let Self {
             label,
             value,
             selected: MyEnum,
             files_folder: FolderNode,
+            db,
+            last_message,
+            is_error,
+            is_add_opened,
+            key_sha1_input,
+            key_name,
+            flower,
         } = self;
-
-        // Examples of how to create different panels and windows.
-        // Pick whichever suits you.
-        // Tip: a good default choice is to just keep the `CentralPanel`.
-        // For inspiration and more examples, go to https://emilk.github.io/egui
 
         #[cfg(not(target_arch = "wasm32"))] // no File->Quit on web pages!
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
@@ -233,43 +346,162 @@ impl eframe::App for EncrypterApp {
         });
 
         egui::SidePanel::left("side_panel")
-        .exact_width(500.0)
-        .show(ctx, |ui| {
-            // ui.heading("Files");
+            .exact_width(500.0)
+            .show(ctx, |ui| {
+                // ui.heading("Files");
 
-            egui::ScrollArea::both()
-            .show(ui, |ui| {
-
-                StripBuilder::new(ui)
-                .size(Size::remainder()).horizontal(|mut strip| {
-                    strip.cell(|ui| {
-                        EncrypterApp::display_tree(&mut self.files_folder, ui);
-                    });
+                egui::ScrollArea::both().show(ui, |ui| {
+                    StripBuilder::new(ui)
+                        .size(Size::remainder())
+                        .horizontal(|mut strip| {
+                            strip.cell(|ui| {
+                                EncrypterApp::display_tree(&mut self.files_folder, ui);
+                            });
+                        });
                 });
-
             });
-        });
 
         egui::CentralPanel::default().show(ctx, |ui| {
+            // ui.horizontal(|ui| {
+            //     ui.label("essai");
+            //     if (ui.button(RichText::new("delete")).drag_started()) {
+            //         ui.label("clicked");
+            //     }
+            // });
+
             ui.horizontal(|ui| {
-                ui.label("essai");
-                if (ui.button(RichText::new("delete")).drag_started()) {
-                    ui.label("clicked");
+                egui::ComboBox::from_label("Clés de cryptage")
+                    .selected_text(format!("{:?}", self.selected))
+                    .show_ui(ui, |ui| {
+                        let keys = self.db.get_all().expect("fail to get keys");
+                        for k in keys.iter() {
+                            ui.selectable_value(&mut self.selected, Some(k.clone()), &k.name);
+                        }
+                    });
+                if ui.button("Ajouter ..").clicked() {
+                    self.is_add_opened = true;
                 }
             });
 
-            egui::ComboBox::from_label("Select one!")
-                .selected_text(format!("{:?}", self.selected))
-                .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut self.selected, MyEnum::First, "First");
-                    ui.selectable_value(&mut self.selected, MyEnum::Second, "Second");
-                    ui.selectable_value(&mut self.selected, MyEnum::Third, "Third");
+            ui.separator();
+
+            egui::ScrollArea::both().show(ui, |ui| {
+                ui.group(|ui| {
+                    ui.label("Liste des fichiers sélectionnés :");
+                    ui.separator();
+                    EncrypterApp::construct_list(&self.files_folder, ui);
                 });
 
-                EncrypterApp::construct_list(&self.files_folder, ui);
+                let button_crypt = egui::Button::new(
+                    RichText::new("Crypter les fichiers sélectionnés").color(Color32::BLUE),
+                );
+                if let Some(selected_key) = &self.selected {
+                    if ui.add(button_crypt).clicked() {
+                        println!("Cryptage des fichiers");
+
+                        if let Some(kvalue) = &selected_key.public_key {
+                            EncrypterApp::crypt_selected(
+                                &self.files_folder,
+                                &selected_key.sha1,
+                                kvalue,
+                            );
+                            println!("Fin de Cryptage des fichiers");
+                            self.last_message = "Fichier cryptés avec succès".into();
+                            self.is_error = false;
+                        } else {
+                            self.last_message = "no public key".into();
+                            self.is_error = true;
+                        }
+                    }
+                } else {
+                    // ui.set_enabled(false);
+                    // ui.add(button_crypt)
+                    //    .on_hover_text("Sélectionnez une clé de cryptage");
+                }
+
+                if !&self.last_message.is_empty() {
+                    let mut rt = RichText::new(&self.last_message);
+                    if self.is_error {
+                        rt = rt.color(Color32::RED);
+                    }
+                    ui.label(rt);
+                }
+            });
 
             egui::warn_if_debug_build(ui);
         });
 
+        if self.is_add_opened {
+            let f = &self.flower;
+            egui::Window::new("Ajouter une carte").show(ctx, |ui| {
+                ui.vertical(|ui| {
+                    ui.horizontal(|ui| {
+                        ui.label("Sha1 clé");
+                        ui.text_edit_singleline(&mut self.key_sha1_input);
+                    });
+
+                    ui.horizontal(|ui| {
+                        ui.label("Nom de la clé");
+                        ui.text_edit_singleline(&mut self.key_name);
+                    });
+                });
+
+                ui.horizontal(|ui| {
+                    if ui.button("Ajouter").clicked() {
+                        println!("Ajout de la carte dans la liste");
+
+                        EncrypterApp::download_key(&f, self.key_sha1_input.clone());
+                    }
+                    if ui.button("Annuler").clicked() {
+                        self.is_add_opened = false;
+                    }
+
+                    // handling result
+                    if f.is_active() {
+                        f.extract(|r| println!("{}", r)).finalize(|result| {
+                            match result {
+                                Ok(value) => {
+                                    println!("success dans la récupération des clés : {:?}", value);
+                                    self.last_message =
+                                        "clé ".to_string() + &self.key_sha1_input + " récupérée";
+                                    self.is_error = false;
+
+                                    let new_key = Key {
+                                        rowid: 0,
+                                        name: self.key_name.clone(),
+                                        sha1: self.key_sha1_input.clone(),
+                                        public_key: Some(value.clone().as_bytes().to_vec()),
+                                    };
+
+                                    if let Ok(r) = self.db.insert(&new_key) {
+                                        self.last_message = "clé ".to_string()
+                                            + &self.key_sha1_input
+                                            + " récupérée, et sauvegardées";
+                                        self.is_error = false;
+                                    } else {
+                                        self.last_message = "clé ".to_string()
+                                            + &self.key_sha1_input
+                                            + " non sauvegardée, erreur dans l'écriture";
+                                        self.is_error = true;
+                                    }
+
+                                    self.is_add_opened = false;
+                                }
+                                Err(Cause::Suppose(msg)) => {
+                                    println!("{}", msg);
+                                    self.last_message = msg.clone();
+                                    self.is_error = true;
+                                }
+                                Err(Cause::Panicked(_msg)) => {
+                                    // Handle things if stuff unexpectedly panicked at runtime.
+                                    self.last_message = _msg.clone();
+                                    self.is_error = true;
+                                }
+                            }
+                        });
+                    }
+                });
+            });
+        }
     }
 }
