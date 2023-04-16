@@ -25,9 +25,9 @@ pub struct FolderNode {
 }
 
 impl FolderNode {
-    pub fn name(&mut self) -> String {
+    pub fn name(&mut self) -> &str {
         let ancestors = Path::new(&self.path).file_name().unwrap().to_str().unwrap();
-        return String::from(ancestors);
+        return ancestors;
     }
 }
 
@@ -49,10 +49,8 @@ pub fn expand(folder: &mut FolderNode) -> Result<(), FolderError> {
         })?
         .collect();
 
-        entries.sort_by(|a, b| {
-            let an = a.clone().name();
-            let bn = b.clone().name();
-            an.partial_cmp(&bn).unwrap()
+        entries.sort_by_key(|a: &Box<FolderNode>| {
+            String::from(a.clone().name())
         } );
 
     folder.subfolders = entries.clone();

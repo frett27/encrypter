@@ -3,4 +3,6 @@
 mod app;
 pub use app::EncrypterApp;
 
+pub mod encrypt;
+
 pub mod folder;

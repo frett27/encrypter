@@ -10,6 +10,7 @@ mod test_folder {
             expanded: false,
             is_folder: true,
             subfolders: vec![],
+            selected: false
         };
 
         encrypter::folder::expand(&mut f).unwrap();

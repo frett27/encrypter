@@ -163,10 +163,11 @@ impl EncrypterApp {
 
     }
 
+    /// recursive function to display files
     fn display_tree(files_folder: &mut FolderNode, ui: &mut Ui) {
         for ele in &mut files_folder.subfolders {
-            let element_name = ele.name();
-            if (ele.is_folder) {
+            let element_name = String::from(ele.name());
+            if ele.is_folder {
                 let r = ui.collapsing(element_name, |ui| {
                     // ui.horizontal_wrapped(|ui| {
                     ui.spacing_mut().item_spacing.x = 0.0;

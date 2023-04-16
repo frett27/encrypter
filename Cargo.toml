@@ -17,6 +17,10 @@ eframe = { version = "0.20.0", default-features = false, features = [
 egui_extras = "0.20.0"
 thiserror = "1.0"
 openssl = { version = "0.10", features = ["vendored"] }
+#sqlite = "0.30.3"
+# rust-mqtt= "0.1.4"
+gluesql = "0.13"
+
 
 # You only need serde if you want app persistence:
 serde = { version = "1", features = ["derive"] }
