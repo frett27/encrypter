@@ -375,7 +375,7 @@ impl eframe::App for EncrypterApp {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.horizontal(|ui| {
-                egui::ComboBox::from_label("Clés de cryptage")
+                egui::ComboBox::from_label("Clés de chiffrage")
                     .selected_text(format!("{:?}", self.selected))
                     .show_ui(ui, |ui| {
                         let keys = self.db.get_all().expect("fail to get keys");
@@ -398,11 +398,11 @@ impl eframe::App for EncrypterApp {
                 });
 
                 let button_crypt = egui::Button::new(
-                    RichText::new("Crypter les fichiers sélectionnés").color(Color32::BLUE),
+                    RichText::new("Chiffrer les fichiers sélectionnés").color(Color32::BLUE),
                 );
                 if let Some(selected_key) = &self.selected {
                     if ui.add(button_crypt).clicked() {
-                        info!("Cryptage des fichiers");
+                        info!("Chiffrage des fichiers");
 
                         if let Some(kvalue) = &selected_key.public_key {
                             match EncrypterApp::crypt_selected(
@@ -411,12 +411,12 @@ impl eframe::App for EncrypterApp {
                                 kvalue,
                             ) {
                                 Ok(_) => {
-                                    println!("Fin de Cryptage des fichiers");
-                                    self.last_message = "Fichier cryptés avec succès".into();
+                                    println!("Fin du chiffrage des fichiers");
+                                    self.last_message = "Fichiers chiffrés avec succès".into();
                                     self.is_error = false;
                                 }
                                 Err(e) => {
-                                    self.last_message = "Erreur dans le cryptage".into();
+                                    self.last_message = "Erreur dans le chiffrage".into();
                                     self.is_error = true;
                                     error!("Error in crypt : {:?}", e);
                                 }

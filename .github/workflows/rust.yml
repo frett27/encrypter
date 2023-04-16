@@ -72,6 +72,7 @@ jobs:
   winbuild:
     name: Windows Build
     runs-on: windows-latest
+    permissions: write-all
     strategy:
       fail-fast: false
     steps:
