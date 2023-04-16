@@ -75,20 +75,45 @@ jobs:
     strategy:
       fail-fast: false
     steps:
-      - uses: actions/checkout@master
-      - name: Install latest nightly
+      # - uses: actions/checkout@master
+      # - name: vcpkg build
+      #   uses: johnwason/vcpkg-action@v4
+      #   id: vcpkg
+      #   with:
+      #     pkgs: openssl
+      #     triplet: x64-windows-release
+      #     token: ${{ github.token }}
+      - name: Install latest stable
         uses: actions-rs/toolchain@v1
         with:
-            toolchain: nightly
+            toolchain: stable
             override: true
             components: rustfmt, clippy
-
-      # `cargo check` command here will use installed `nightly`
-      # as it is set as an "override" for current directory
-
       - name: Run cargo check
         uses: actions-rs/cargo@v1
         with:
           command: build
+          args: --release
 
+    - id: create-release
+      name: Create GitHub release
+      uses: actions/create-release@latest
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: prerelease-${{ github.ref_name }}
+        release_name: prerelease-${{ github.ref_name }}
+        draft: true
+        prerelease: true
+
+    - id: winrelease
+      name: windows appimage
+      uses: actions/upload-release-asset@latest
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create-release.outputs.upload_url }}
+        asset_path: target/release/encrypter.exe
+        asset_name: encrypter.exe
+        asset_content_type: application/x-binary
           
