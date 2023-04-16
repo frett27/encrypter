@@ -71,19 +71,24 @@ jobs:
 
   winbuild:
     name: Windows Build
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     strategy:
       fail-fast: false
-      matrix:
-        target: [x86_64-pc-windows-gnu, x86_64-unknown-linux-musl]
     steps:
       - uses: actions/checkout@master
-      - name: Compile and release
-        uses: rust-build/rust-build.action@v1.4.3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install latest nightly
+        uses: actions-rs/toolchain@v1
         with:
-          RUSTTARGET: ${{ matrix.target }}
-          EXTRA_FILES: "README.md LICENSE"
+            toolchain: nightly
+            override: true
+            components: rustfmt, clippy
+
+      # `cargo check` command here will use installed `nightly`
+      # as it is set as an "override" for current directory
+
+      - name: Run cargo check
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
 
           
