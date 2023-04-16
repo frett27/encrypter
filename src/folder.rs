@@ -29,7 +29,7 @@ pub struct FolderNode {
 impl FolderNode {
     pub fn name(&self) -> &str {
         let ancestors = Path::new(&self.path).file_name().unwrap().to_str().unwrap();
-        return ancestors;
+        ancestors
     }
 }
 

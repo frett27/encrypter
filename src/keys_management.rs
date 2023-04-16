@@ -43,7 +43,6 @@ impl Debug for Key {
 
 impl Database {
     pub fn open_database() -> Result<Database> {
-        
         let conn = Connection::open_with_flags(
             "keys.db",
             OpenFlags::SQLITE_OPEN_READ_WRITE
@@ -79,8 +78,7 @@ impl Database {
     pub fn get_all(&self) -> Result<Vec<Key>> {
         let mut v: Vec<Key> = Vec::new();
         let c = self.db.read();
-        let mut stmt = 
-            c.prepare("SELECT rowid, name, sha1, public_key FROM all_keys")?;
+        let mut stmt = c.prepare("SELECT rowid, name, sha1, public_key FROM all_keys")?;
         let keys_iter = stmt.query_map([], |row| {
             Ok(Key {
                 rowid: row.get(0)?,
@@ -91,11 +89,7 @@ impl Database {
         })?;
 
         for k in keys_iter {
-            if let Err(e) = k {
-                return Err(e);
-            } else {
-                v.push(k?);
-            }
+            v.push(k?);
         }
 
         Ok(v)

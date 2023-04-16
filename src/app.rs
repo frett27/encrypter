@@ -35,7 +35,6 @@ impl AppError {
     }
 }
 
-
 impl fmt::Display for AppError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Application Error : {}", &self._msg)
@@ -89,7 +88,9 @@ impl Default for EncrypterApp {
         let db = Database::open_database().expect("cannot open database");
 
         // expand the first level
-        expand(&mut r);
+        if let Err(e) = expand(&mut r) {
+            error!("error in expanding the tree : {}", e);
+        }
 
         Self {
             // Example stuff:
@@ -231,10 +232,8 @@ impl EncrypterApp {
                         error!("error in displaying sub tree {}", e);
                     }
                 });
-                if r.fully_open() {
-                    if !ele.expanded {
-                        expand(ele)?;
-                    }
+                if r.fully_open() && !ele.expanded {
+                    expand(ele)?;
                 }
             } else {
                 ui.checkbox(&mut ele.selected, element_name);
@@ -364,7 +363,11 @@ impl eframe::App for EncrypterApp {
                         .size(Size::remainder())
                         .horizontal(|mut strip| {
                             strip.cell(|ui| {
-                                EncrypterApp::display_tree(&mut self.files_folder, ui);
+                                if let Err(e) =
+                                    EncrypterApp::display_tree(&mut self.files_folder, ui)
+                                {
+                                    error!("error in display tree: {}", e);
+                                }
                             });
                         });
                 });
@@ -480,7 +483,7 @@ impl eframe::App for EncrypterApp {
                                         rowid: 0,
                                         name: self.key_name.clone(),
                                         sha1: self.key_sha1_input.clone(),
-                                        public_key: Some(value.clone().as_bytes().to_vec()),
+                                        public_key: Some(value.as_bytes().to_vec()),
                                     };
 
                                     if let Ok(r) = self.db.insert(&new_key) {
@@ -499,12 +502,12 @@ impl eframe::App for EncrypterApp {
                                 }
                                 Err(Cause::Suppose(msg)) => {
                                     println!("{}", msg);
-                                    self.last_message = msg.clone();
+                                    self.last_message = msg;
                                     self.is_error = true;
                                 }
                                 Err(Cause::Panicked(_msg)) => {
                                     // Handle things if stuff unexpectedly panicked at runtime.
-                                    self.last_message = _msg.clone();
+                                    self.last_message = _msg;
                                     self.is_error = true;
                                 }
                             }
