@@ -10,15 +10,12 @@ pub mod folder;
 
 pub mod keys_management;
 
-
-
-use std::str;
-use std::fmt;
 use std::error;
+use std::fmt;
+use std::str;
 
 /// Enum listing possible errors from rusqlite.
 #[derive(Debug)]
-#[allow(clippy::enum_variant_names)]
 #[non_exhaustive]
 pub enum Error {
     Utf8Error(str::Utf8Error),
@@ -32,10 +29,9 @@ impl From<str::Utf8Error> for Error {
 }
 
 impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", &self)
     }
 }
 
 pub type Result<T> = std::result::Result<T, Box<dyn error::Error>>;
-

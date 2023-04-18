@@ -15,7 +15,7 @@ mod test_encryption {
             midi_file + "x".into(),
             "test_private.key.pem".into(),
             "30d9690cc085429a1d0a3ae787932bf1518a1798".into(),
-            "result".into()
+            "result".into(),
         )
         .expect("fail to decrypt");
     }
@@ -30,7 +30,7 @@ mod test_encryption {
             midi_file + "x".into(),
             "test_private.key.pem".into(),
             "30d9690cc085429a1d0a3ae787932bf1518a1798".into(),
-            "result".into()
+            "result".into(),
         )
         .expect("fail to encrypt");
     }

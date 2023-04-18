@@ -15,7 +15,7 @@ pub struct Database {
     db: Arc<RwLock<Connection>>,
 }
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Eq, Clone)]
 pub struct Key {
     pub rowid: i32,
     pub name: String,
