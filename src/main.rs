@@ -11,13 +11,17 @@ fn main() {
     info!("starting program");
     tracing_subscriber::fmt::init();
 
-    let mut native_options = eframe::NativeOptions::default();
-    native_options.vsync = false;
+    let native_options = eframe::NativeOptions {
+        initial_window_size: Some(egui::vec2(320.0, 240.0)),
+        shader_version: Some(eframe::egui_glow::ShaderVersion::Es300), // explicit shader version so that egui won't query opengl for supported version.
+        ..Default::default()
+    };
+
     eframe::run_native(
         "OR1 Module File Encrypter",
         native_options,
         Box::new(|cc| Box::new(encrypter::EncrypterApp::new(cc))),
-    );
+    ).expect("error in run native");
 }
 
 // when compiling to web using trunk.
