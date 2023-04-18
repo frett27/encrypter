@@ -1,11 +1,10 @@
-use log::{debug, error, info};
+use log::{error, info};
 
 use std::fmt;
 use std::path::Path;
 
 use crate::encrypt::encrypt_file_with_inmemory_key;
 use crate::folder::*;
-use crate::Error;
 
 use crate::keys_management::*;
 use egui::Color32;
@@ -30,13 +29,13 @@ impl AppError {
         T: Into<String>,
     {
         AppError {
-            _msg: msg.into().clone(),
+            _msg: msg.into(),
         }
     }
 }
 
 impl fmt::Display for AppError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Application Error : {}", &self._msg)
     }
 }
@@ -98,7 +97,7 @@ impl Default for EncrypterApp {
             value: 2.7,
             selected: None,
             files_folder: r,
-            db: db,
+            db,
             last_message: "".to_owned(),
             is_error: false,
             is_add_opened: false,
@@ -137,7 +136,7 @@ impl EncrypterApp {
         use egui::FontId;
         use egui::TextStyle::*;
 
-        use eframe::egui::{Style, Visuals};
+        use eframe::egui::{Visuals};
 
         // Get current context style
         let mut style = (*ctx.style()).clone();
@@ -247,21 +246,21 @@ impl EncrypterApp {
             ui.label(RichText::new(file_folder.clone().name()).color(Color32::DARK_BLUE));
         }
         for elem in &file_folder.subfolders {
-            EncrypterApp::construct_list(&elem, ui);
+            EncrypterApp::construct_list(elem, ui);
         }
     }
 
     fn crypt_selected(file_folder: &FolderNode, keyname: &String, sha1: &String, key: &[u8]) -> crate::Result<()> {
         if file_folder.selected {
-            let filename = file_folder.name().clone().to_string();
+            let filename = file_folder.name().to_string();
 
             let folder_name = keyname.clone() + "-" + sha1;
-            if !Path::new(&folder_name.clone()).try_exists()? {
+            if !Path::new(&folder_name).try_exists()? {
                 std::fs::create_dir(folder_name.clone())?;
             }
 
-            let o_conversion = Path::new(&folder_name.clone())
-                .join(filename.clone() + "x".into())
+            let o_conversion = Path::new(&folder_name)
+                .join(filename.clone() + "x")
                 .into_os_string()
                 .into_string();
 
@@ -276,7 +275,7 @@ impl EncrypterApp {
         }
 
         for elem in &file_folder.subfolders {
-            EncrypterApp::crypt_selected(&elem,&keyname, &sha1, &key)?;
+            EncrypterApp::crypt_selected(elem, keyname, sha1, key)?;
         }
         Ok(())
     }
@@ -290,17 +289,14 @@ impl EncrypterApp {
                 handle.send("start".into());
 
                 let response_result = isahc::get(
-                    "http://or1.frett27.net/k/".to_string() + &sha1.clone() + "/public.key.pem",
+                    "http://or1.frett27.net/k/".to_string() + &sha1 + "/public.key.pem",
                 );
 
-                if response_result.is_ok() {
-                    let mut response = response_result.unwrap();
+                if let  Ok(mut response) = response_result {                    
                     if response.status().is_success() {
                         let text = response.text(); // read response
 
-                        if text.is_ok() {
-                            let returned_elements = text.unwrap();
-
+                        if let Ok(returned_elements) = text {
                             // Set result and then extract later.
                             handle.set_result(Ok(returned_elements));
                         } else {
@@ -331,17 +327,17 @@ impl eframe::App for EncrypterApp {
 
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let Self {
-            label,
-            value,
-            selected,
-            files_folder,
-            db,
-            last_message,
-            is_error,
-            is_add_opened,
-            key_sha1_input,
-            key_name,
-            flower,
+            label: _,
+            value : _,
+            selected: _,
+            files_folder: _,
+            db: _,
+            last_message: _,
+            is_error: _,
+            is_add_opened: _,
+            key_sha1_input: _,
+            key_name: _,
+            flower: _,
         } = self;
 
         #[cfg(not(target_arch = "wasm32"))] // no File->Quit on web pages!
@@ -465,7 +461,7 @@ impl eframe::App for EncrypterApp {
                     if ui.button("Ajouter").clicked() {
                         println!("Ajout de la carte dans la liste");
 
-                        EncrypterApp::download_key(&f, self.key_sha1_input.clone());
+                        EncrypterApp::download_key(f, self.key_sha1_input.clone());
                     }
                     if ui.button("Annuler").clicked() {
                         self.is_add_opened = false;
@@ -488,7 +484,7 @@ impl eframe::App for EncrypterApp {
                                         public_key: Some(value.as_bytes().to_vec()),
                                     };
 
-                                    if let Ok(r) = self.db.insert(&new_key) {
+                                    if let Ok(_r) = self.db.insert(&new_key) {
                                         self.last_message = "clé ".to_string()
                                             + &self.key_sha1_input
                                             + " récupérée, et sauvegardées";

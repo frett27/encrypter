@@ -1,10 +1,9 @@
-use std::fs::{self, read_dir, DirEntry};
-use std::io::{self, Error};
+use std::fs::{read_dir};
+use std::io;
 use std::path::Path;
 
-use thiserror::Error;
 
-use log::{debug, error, info, log_enabled, Level};
+use log::{debug, error};
 
 #[derive(thiserror::Error, Debug)]
 pub enum FolderError {
@@ -51,7 +50,7 @@ pub fn expand(folder: &mut FolderNode) -> Result<(), FolderError> {
             })
         })?
         .collect();
-
+        #[allow(clippy::borrowed_box)]        
         entries.sort_by_key(|a: &Box<FolderNode>| {
             String::from(a.clone().name())
         } );

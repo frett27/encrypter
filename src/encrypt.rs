@@ -1,16 +1,12 @@
-use log::{debug, error, info, log_enabled, Level};
+use log::{debug};
 
 use openssl::rsa::{Padding, Rsa};
 
-use std::error;
 use std::fs::File;
 use std::io::{Read, Write};
-use std::result;
-use std::str::{self, Utf8Error};
-use std::{fmt, fs};
+use std::{fs};
 
 use crate::Result;
-
 
 const BLOCK_SIZE: usize = 4096 / 16;
 
@@ -18,13 +14,13 @@ fn get_file_as_byte_vec(filename: &String) -> Result<Vec<u8>> {
     let mut f = File::open(filename)?;
     let metadata = fs::metadata(filename)?;
     let mut buffer = vec![0; metadata.len() as usize];
-    f.read(&mut buffer)?;
+    f.read_to_end(&mut buffer)?;
 
     Ok(buffer)
 }
 
 pub fn encrypt_file(filepath: &String, public_key_path: &String) -> Result<()> {
-    let public_file_content = get_file_as_byte_vec(&public_key_path)?;
+    let public_file_content = get_file_as_byte_vec(public_key_path)?;
 
     let o = filepath.clone() + "x";
     encrypt_file_with_inmemory_key(filepath, &o, &public_file_content)?;
@@ -38,7 +34,7 @@ pub fn encrypt_file_with_inmemory_key(
 ) -> Result<()> {
     // read pem public file
 
-    let rsa_key = Rsa::public_key_from_pem_pkcs1(&public_key_content)?;
+    let rsa_key = Rsa::public_key_from_pem_pkcs1(public_key_content)?;
 
     debug!("{:?}", rsa_key);
 
@@ -66,7 +62,7 @@ pub fn encrypt_file_with_inmemory_key(
 
         let slice: &[u8] = &filecontent[(BLOCK_SIZE * i)..(BLOCK_SIZE * i) + bsize];
         let crypted_buffer_size =
-            rsa_key.public_encrypt(&slice, &mut buffer, Padding::PKCS1_OAEP)?;
+            rsa_key.public_encrypt(slice, &mut buffer, Padding::PKCS1_OAEP)?;
         _encrypt_size += crypted_buffer_size;
         left_to_encrypt -= bsize;
 
