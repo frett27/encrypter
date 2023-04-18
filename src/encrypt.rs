@@ -1,10 +1,10 @@
-use log::{debug};
+use log::debug;
 
 use openssl::rsa::{Padding, Rsa};
 
+use std::fs;
 use std::fs::File;
 use std::io::{Read, Write};
-use std::{fs};
 
 use crate::Result;
 
@@ -81,7 +81,12 @@ pub fn encrypt_file_with_inmemory_key(
     Ok(())
 }
 
-pub fn decrypt_file(filepath: String, private_key_path: String, passphrase: String, outputfilepath: String) -> Result<()> {
+pub fn decrypt_file(
+    filepath: String,
+    private_key_path: String,
+    passphrase: String,
+    outputfilepath: String,
+) -> Result<()> {
     let private_file_content = get_file_as_byte_vec(&private_key_path)?;
 
     let rsa_key =

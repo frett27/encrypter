@@ -19,7 +19,8 @@ fn main() {
         "OR1 Module File Encrypter",
         native_options,
         Box::new(|cc| Box::new(encrypter::EncrypterApp::new(cc))),
-    ).expect("error in run native");
+    )
+    .expect("error in run native");
 }
 
 // when compiling to web using trunk.

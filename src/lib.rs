@@ -10,11 +10,9 @@ pub mod folder;
 
 pub mod keys_management;
 
-
-
-use std::str;
-use std::fmt;
 use std::error;
+use std::fmt;
+use std::str;
 
 /// Enum listing possible errors from rusqlite.
 #[derive(Debug)]
@@ -37,4 +35,3 @@ impl fmt::Display for Error {
 }
 
 pub type Result<T> = std::result::Result<T, Box<dyn error::Error>>;
-

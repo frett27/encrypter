@@ -28,9 +28,7 @@ impl AppError {
     where
         T: Into<String>,
     {
-        AppError {
-            _msg: msg.into(),
-        }
+        AppError { _msg: msg.into() }
     }
 }
 
@@ -136,7 +134,7 @@ impl EncrypterApp {
         use egui::FontId;
         use egui::TextStyle::*;
 
-        use eframe::egui::{Visuals};
+        use eframe::egui::Visuals;
 
         // Get current context style
         let mut style = (*ctx.style()).clone();
@@ -250,7 +248,12 @@ impl EncrypterApp {
         }
     }
 
-    fn crypt_selected(file_folder: &FolderNode, keyname: &String, sha1: &String, key: &[u8]) -> crate::Result<()> {
+    fn crypt_selected(
+        file_folder: &FolderNode,
+        keyname: &String,
+        sha1: &String,
+        key: &[u8],
+    ) -> crate::Result<()> {
         if file_folder.selected {
             let filename = file_folder.name().to_string();
 
@@ -288,11 +291,10 @@ impl EncrypterApp {
             move || {
                 handle.send("start".into());
 
-                let response_result = isahc::get(
-                    "http://or1.frett27.net/k/".to_string() + &sha1 + "/public.key.pem",
-                );
+                let response_result =
+                    isahc::get("http://or1.frett27.net/k/".to_string() + &sha1 + "/public.key.pem");
 
-                if let  Ok(mut response) = response_result {                    
+                if let Ok(mut response) = response_result {
                     if response.status().is_success() {
                         let text = response.text(); // read response
 
@@ -328,7 +330,7 @@ impl eframe::App for EncrypterApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let Self {
             label: _,
-            value : _,
+            value: _,
             selected: _,
             files_folder: _,
             db: _,

@@ -1,7 +1,6 @@
-use std::fs::{read_dir};
+use std::fs::read_dir;
 use std::io;
 use std::path::Path;
-
 
 use log::{debug, error};
 
@@ -14,7 +13,6 @@ pub enum FolderError {
     #[error("unknown data store error")]
     Unknown,
 }
-
 
 #[derive(Debug, Clone)]
 pub struct FolderNode {
@@ -36,24 +34,22 @@ pub fn expand(folder: &mut FolderNode) -> Result<(), FolderError> {
     debug!("expanding {:?}", &folder);
     let p: &Path = Path::new(&folder.path);
     let mut entries: Vec<Box<FolderNode>> = read_dir(p)
-        .map(|res|  {
+        .map(|res| {
             res.map(|e| {
                 let de = e.unwrap();
                 let file_type = de.file_type().unwrap();
                 Box::new(FolderNode {
-                        path: String::from(de.path().to_string_lossy()),
-                        expanded: false,
-                        is_folder: file_type.is_dir(),
-                        subfolders: vec![],
-                        selected: false
-                    })
+                    path: String::from(de.path().to_string_lossy()),
+                    expanded: false,
+                    is_folder: file_type.is_dir(),
+                    subfolders: vec![],
+                    selected: false,
+                })
             })
         })?
         .collect();
-        #[allow(clippy::borrowed_box)]        
-        entries.sort_by_key(|a: &Box<FolderNode>| {
-            String::from(a.clone().name())
-        } );
+    #[allow(clippy::borrowed_box)]
+    entries.sort_by_key(|a: &Box<FolderNode>| String::from(a.clone().name()));
 
     folder.subfolders = entries.clone();
     folder.expanded = true;
