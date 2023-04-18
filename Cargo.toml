@@ -41,7 +41,7 @@ eframe = { git = "https://github.com/rustytsuki/egui", branch = "rust-office", d
     "persistence",   # Enable restoring app state when restarting the app.
 ] }
 
-[target.'cfg(target_arch = "unix")'.dependencies]
+[target.'cfg(target_arch = "linux")'.dependencies]
 eframe = { git = "https://github.com/rustytsuki/egui", branch = "rust-office", default-features = false, features = [
     "accesskit",     # Make egui comptaible with screen readers. NOTE: adds a lot of dependencies.
     "default_fonts", # Embed the default egui fonts.
