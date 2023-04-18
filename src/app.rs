@@ -251,15 +251,16 @@ impl EncrypterApp {
         }
     }
 
-    fn crypt_selected(file_folder: &FolderNode, sha1: &String, key: &[u8]) -> crate::Result<()> {
+    fn crypt_selected(file_folder: &FolderNode, keyname: &String, sha1: &String, key: &[u8]) -> crate::Result<()> {
         if file_folder.selected {
             let filename = file_folder.name().clone().to_string();
 
-            if !Path::new(&sha1).try_exists()? {
-                std::fs::create_dir(sha1)?;
+            let folder_name = keyname.clone() + "-" + sha1;
+            if !Path::new(&folder_name.clone()).try_exists()? {
+                std::fs::create_dir(folder_name.clone())?;
             }
 
-            let o_conversion = Path::new(&sha1)
+            let o_conversion = Path::new(&folder_name.clone())
                 .join(filename.clone() + "x".into())
                 .into_os_string()
                 .into_string();
@@ -275,7 +276,7 @@ impl EncrypterApp {
         }
 
         for elem in &file_folder.subfolders {
-            EncrypterApp::crypt_selected(&elem, &sha1, &key)?;
+            EncrypterApp::crypt_selected(&elem,&keyname, &sha1, &key)?;
         }
         Ok(())
     }
@@ -407,6 +408,7 @@ impl eframe::App for EncrypterApp {
                         if let Some(kvalue) = &selected_key.public_key {
                             match EncrypterApp::crypt_selected(
                                 &self.files_folder,
+                                &selected_key.name,
                                 &selected_key.sha1,
                                 kvalue,
                             ) {
