@@ -12,8 +12,6 @@ fn main() {
     tracing_subscriber::fmt::init();
 
     let native_options = eframe::NativeOptions {
-        initial_window_size: Some(egui::vec2(320.0, 240.0)),
-        shader_version: Some(eframe::egui_glow::ShaderVersion::Es300), // explicit shader version so that egui won't query opengl for supported version.
         ..Default::default()
     };
 
