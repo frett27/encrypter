@@ -774,8 +774,7 @@ checksum = "9ea835d29036a4087793836fa931b08837ad5e957da9e23886b29586fb9b6650"
 [[package]]
 name = "ecolor"
 version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f99fe3cac305af9d6d92971af60d0f7ea4d783201ef1673571567b6699964d9"
+source = "git+https://github.com/rustytsuki/egui?branch=rust-office#f91ca7f735830a2b821ba37ccc77708d4e677e17"
 dependencies = [
  "bytemuck",
  "serde",
@@ -783,9 +782,8 @@ dependencies = [
 
 [[package]]
 name = "eframe"
-version = "0.21.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3df3ce60931e5f2d83bab4484d1a283908534d5308cc6b0c5c22c59cd15ee7cc"
+version = "0.21.0"
+source = "git+https://github.com/rustytsuki/egui?branch=rust-office#f91ca7f735830a2b821ba37ccc77708d4e677e17"
 dependencies = [
  "bytemuck",
  "directories-next",
@@ -811,8 +809,7 @@ dependencies = [
 [[package]]
 name = "egui"
 version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6412a21e0bde7c0918f7fb44bbbb86b5e1f88e63c026a4e747cc7af02f76dfbe"
+source = "git+https://github.com/rustytsuki/egui?branch=rust-office#f91ca7f735830a2b821ba37ccc77708d4e677e17"
 dependencies = [
  "accesskit",
  "ahash 0.8.2",
@@ -825,9 +822,8 @@ dependencies = [
 
 [[package]]
 name = "egui-winit"
-version = "0.21.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab43597ba41f0ce39a364ad83185594578bfd8b3409b99dbcbb01df23afc3dbb"
+version = "0.21.0"
+source = "git+https://github.com/rustytsuki/egui?branch=rust-office#f91ca7f735830a2b821ba37ccc77708d4e677e17"
 dependencies = [
  "accesskit_winit",
  "android-activity",
@@ -844,8 +840,7 @@ dependencies = [
 [[package]]
 name = "egui_extras"
 version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f051342e97dfa2445107cb7d2e720617f5c840199b5cb4fe0ffcf481fcf5cce"
+source = "git+https://github.com/rustytsuki/egui?branch=rust-office#f91ca7f735830a2b821ba37ccc77708d4e677e17"
 dependencies = [
  "egui",
  "serde",
@@ -854,8 +849,7 @@ dependencies = [
 [[package]]
 name = "egui_glow"
 version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8257332fb168a965b3dca81d6a344e053153773c889cabdba0b3b76f1629ae81"
+source = "git+https://github.com/rustytsuki/egui?branch=rust-office#f91ca7f735830a2b821ba37ccc77708d4e677e17"
 dependencies = [
  "bytemuck",
  "egui",
@@ -869,8 +863,7 @@ dependencies = [
 [[package]]
 name = "emath"
 version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8ecd80612937e0267909d5351770fe150004e24dab93954f69ca62eecd3f77e"
+source = "git+https://github.com/rustytsuki/egui?branch=rust-office#f91ca7f735830a2b821ba37ccc77708d4e677e17"
 dependencies = [
  "bytemuck",
  "serde",
@@ -954,8 +947,7 @@ dependencies = [
 [[package]]
 name = "epaint"
 version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12e78b5c58a1f7f621f9d546add2adce20636422c9b251e29f749e8a2f713c95"
+source = "git+https://github.com/rustytsuki/egui?branch=rust-office#f91ca7f735830a2b821ba37ccc77708d4e677e17"
 dependencies = [
  "ab_glyph",
  "ahash 0.8.2",
