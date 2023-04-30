@@ -2,8 +2,10 @@ use log::{error, info};
 
 use std::fmt;
 use std::path::Path;
+use std::path::PathBuf;
 
 use crate::encrypt::encrypt_file_with_inmemory_key;
+use crate::folder;
 use crate::folder::*;
 
 use crate::keys_management::*;
@@ -15,6 +17,8 @@ use flowync::error::Cause;
 use flowync::Flower;
 
 use isahc::prelude::*;
+
+use im_native_dialog::ImNativeFileDialog;
 
 type TypedFlower = Flower<String, String>;
 
@@ -70,6 +74,14 @@ pub struct EncrypterApp {
 
     #[serde(skip)]
     flower: TypedFlower,
+    
+    
+
+    #[serde(skip)]
+    file_path: PathBuf,
+
+    #[serde(skip)]
+    file_path_dialog: ImNativeFileDialog<Option<PathBuf>>,
 }
 
 impl Default for EncrypterApp {
@@ -102,6 +114,8 @@ impl Default for EncrypterApp {
             key_name: "".to_owned(),
             key_sha1_input: "".to_owned(),
             flower: TypedFlower::new(1),
+            file_path: PathBuf::from("."),
+            file_path_dialog: im_native_dialog::ImNativeFileDialog::default(),
         }
     }
 }
@@ -340,13 +354,50 @@ impl eframe::App for EncrypterApp {
             key_sha1_input: _,
             key_name: _,
             flower: _,
+            file_path_dialog: _,
+            file_path: _,
         } = self;
+
+        if let Some(result) = self.file_path_dialog.check() {
+            match result {
+                Ok(Some(path)) => { self.file_path = path;
+                    println!("selected folder : {}", self.file_path.as_path().to_str().unwrap());
+                    let mut new_folder = 
+                     FolderNode {
+                        expanded: false,
+                        is_folder: true,
+                        path: self.file_path.as_path().to_str().unwrap().into(),
+                        subfolders: vec![],
+                        selected: false,
+                    };
+                    folder::expand(&mut new_folder).expect("hello");
+                    // self.files_folder.expand();
+                    self.files_folder = new_folder;
+                },
+                Ok(None) => {}
+                Err(error) => {
+                    eprintln!("Error selecting xplane_path: {}", error)
+                }
+            }
+        }
 
         #[cfg(not(target_arch = "wasm32"))] // no File->Quit on web pages!
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             // The top panel is often a good place for a menu bar:
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
+                    if ui.button("Open folder ...").clicked() {
+                        let location = self
+                            .file_path
+                            .parent()
+                            .map(|location| location.to_path_buf());
+
+                        // let repaint_signal = ui.repaint_signal();
+                        self.file_path_dialog
+                            // .with_callback(move |_| repaint_signal.request_repaint())
+                            .open_single_dir(location)
+                            .expect("Unable to open file_path dialog");
+                    }
                     if ui.button("Quit").clicked() {
                         _frame.close();
                     }
