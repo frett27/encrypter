@@ -360,7 +360,10 @@ impl eframe::App for EncrypterApp {
 
         if let Some(result) = self.file_path_dialog.check() {
             match result {
-                Ok(Some(path)) => { self.file_path = path;
+                Ok(Some(path)) => { 
+                    
+                    ctx.request_repaint();
+                    self.file_path = path;
                     println!("selected folder : {}", self.file_path.as_path().to_str().unwrap());
                     let mut new_folder = 
                      FolderNode {
@@ -392,11 +395,13 @@ impl eframe::App for EncrypterApp {
                             .parent()
                             .map(|location| location.to_path_buf());
 
-                        // let repaint_signal = ui.repaint_signal();
+                        
+                        //let repaint_signal = ctx.repaint_signal();
                         self.file_path_dialog
-                            // .with_callback(move |_| repaint_signal.request_repaint())
+                            //.with_callback(move |_| c.request_repaint())
                             .open_single_dir(location)
                             .expect("Unable to open file_path dialog");
+                        ui.close_menu();
                     }
                     if ui.button("Quit").clicked() {
                         _frame.close();
