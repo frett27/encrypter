@@ -176,8 +176,8 @@ jobs:
         asset_content_type: application/x-binary
 
 
-    - id: release-linux-appimage
-      name: Release Linux appimage
+    - id: release-windows-appimage
+      name: Release Windows appimage
       uses: actions/upload-release-asset@latest
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
