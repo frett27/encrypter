@@ -1,10 +1,6 @@
-on:
-  push:
-    branches:
-      - main
-      - 'releases/**'
+on: [push, pull_request]
 
-name: CI
+name: CI prerelease
 
 env:
   RUSTFLAGS: --cfg=web_sys_unstable_apis
