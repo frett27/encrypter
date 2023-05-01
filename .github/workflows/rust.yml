@@ -76,14 +76,6 @@ jobs:
     strategy:
       fail-fast: false
     steps:
-      # - uses: actions/checkout@master
-      # - name: vcpkg build
-      #   uses: johnwason/vcpkg-action@v4
-      #   id: vcpkg
-      #   with:
-      #     pkgs: openssl
-      #     triplet: x64-windows-release
-      #     token: ${{ github.token }}
       - name: Install latest stable
         uses: actions-rs/toolchain@v1
         with:
