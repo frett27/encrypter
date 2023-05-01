@@ -1,8 +1,5 @@
 # OR1 encrypter tool
 
-
-__Work In Progress__
-
 Cet outil permet de chiffrer les éléments musicaux pour les modules OR1.
 
 
