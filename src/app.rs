@@ -74,8 +74,6 @@ pub struct EncrypterApp {
 
     #[serde(skip)]
     flower: TypedFlower,
-    
-    
 
     #[serde(skip)]
     file_path: PathBuf,
@@ -360,13 +358,14 @@ impl eframe::App for EncrypterApp {
 
         if let Some(result) = self.file_path_dialog.check() {
             match result {
-                Ok(Some(path)) => { 
-                    
+                Ok(Some(path)) => {
                     ctx.request_repaint();
                     self.file_path = path;
-                    println!("selected folder : {}", self.file_path.as_path().to_str().unwrap());
-                    let mut new_folder = 
-                     FolderNode {
+                    println!(
+                        "selected folder : {}",
+                        self.file_path.as_path().to_str().unwrap()
+                    );
+                    let mut new_folder = FolderNode {
                         expanded: false,
                         is_folder: true,
                         path: self.file_path.as_path().to_str().unwrap().into(),
@@ -376,7 +375,7 @@ impl eframe::App for EncrypterApp {
                     folder::expand(&mut new_folder).expect("hello");
                     // self.files_folder.expand();
                     self.files_folder = new_folder;
-                },
+                }
                 Ok(None) => {}
                 Err(error) => {
                     eprintln!("Error selecting xplane_path: {}", error)
@@ -395,7 +394,6 @@ impl eframe::App for EncrypterApp {
                             .parent()
                             .map(|location| location.to_path_buf());
 
-                        
                         //let repaint_signal = ctx.repaint_signal();
                         self.file_path_dialog
                             //.with_callback(move |_| c.request_repaint())
