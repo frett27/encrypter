@@ -14,7 +14,6 @@ use std::error;
 use std::fmt;
 use std::str;
 
-/// Enum listing possible errors from rusqlite.
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum Error {
