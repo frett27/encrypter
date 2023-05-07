@@ -2,7 +2,7 @@
 
 Cet outil permet de chiffrer les éléments musicaux pour les modules OR1.
 Le module OR1, est un boitier electronique (serinette, permettant de jouer des morceaux)
-[https://www.barrel-organ-discovery.org/OR1/](https://www.barrel-organ-discovery.org/OR1/)
+[https://www.barrel-organ-discovery.org/or1/](https://www.barrel-organ-discovery.org/or1/)
 
 
 ![](doc/2023-04-16_gui.png)
