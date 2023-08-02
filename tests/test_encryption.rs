@@ -5,9 +5,7 @@ mod test_encryption {
 
     use encrypter::encrypt::*;
 
-   
     fn encrypt_decrypt(midi_file: String) {
-        
         println!("encrypt midi file {}", &midi_file);
         encrypt_file(&midi_file.clone(), &"test_public.key.pem".into()).expect("fail to encrypt");
 
@@ -21,12 +19,12 @@ mod test_encryption {
 
         // check result
         let src = get_file_as_byte_vec(&midi_file).expect("cannot read the source file");
-        let dest = get_file_as_byte_vec(&"result".into()).expect("cannot read the destination file");
+        let dest =
+            get_file_as_byte_vec(&"result".into()).expect("cannot read the destination file");
         assert!(src.len() == dest.len());
-        for (index,i) in src.iter().enumerate() {
+        for (index, i) in src.iter().enumerate() {
             assert!(*i == dest[index]);
         }
-
     }
     #[test]
     fn test_encrypt() {
@@ -36,6 +34,4 @@ mod test_encryption {
         encrypt_decrypt(midi_file);
         encrypt_decrypt("113-BennyHill.mid".into());
     }
-
-   
 }
