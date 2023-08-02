@@ -430,6 +430,7 @@ impl eframe::App for EncrypterApp {
             ui.horizontal(|ui| {
                 egui::ComboBox::from_label("Clés de chiffrage")
                     .selected_text(format!("{:?}", self.selected))
+                    .width(300.0)
                     .show_ui(ui, |ui| {
                         let keys = self.db.get_all().expect("fail to get keys");
                         for k in keys.iter() {
