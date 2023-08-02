@@ -18,7 +18,7 @@ mod test_db {
 
         d.insert(&k).expect("fail to insert key");
 
-        for k in d.get_all() {
+        while let Ok(k) = d.get_all() {
             println!("key : {:?}", k);
         }
     }
