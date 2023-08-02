@@ -54,7 +54,7 @@ impl Database {
         conn.execute(
             "CREATE TABLE IF NOT EXISTS all_keys (
                 name TEXT NOT NULL,
-                sha1 TEXT NOT NULL,
+                sha1 TEXT NOT NULL PRIMARY KEY,
                 public_key BLOB
             )",
             (), // empty list of parameters.
@@ -68,7 +68,7 @@ impl Database {
     pub fn insert(&self, k: &Key) -> Result<()> {
         let c = self.db.read();
         c.execute(
-            "INSERT INTO all_keys (name, sha1, public_key) VALUES (?1, ?2, ?3)",
+            "INSERT or REPLACE INTO all_keys (name, sha1, public_key) VALUES (?1, ?2, ?3)",
             (&k.name, &k.sha1, &k.public_key),
         )?;
 

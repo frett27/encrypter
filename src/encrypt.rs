@@ -1,4 +1,4 @@
-use log::debug;
+use log::{debug, info};
 
 use openssl::rsa::{Padding, Rsa};
 
@@ -10,17 +10,20 @@ use crate::Result;
 
 const BLOCK_SIZE: usize = 4096 / 16;
 
-fn get_file_as_byte_vec(filename: &String) -> Result<Vec<u8>> {
+pub fn get_file_as_byte_vec(filename: &String) -> Result<Vec<u8>> {
     let mut f = File::open(filename)?;
     let metadata = fs::metadata(filename)?;
-    let mut buffer = vec![0; metadata.len() as usize];
+    debug!("file size : {}", metadata.len());
+    let mut buffer = vec![];
     f.read_to_end(&mut buffer)?;
 
     Ok(buffer)
 }
 
 pub fn encrypt_file(filepath: &String, public_key_path: &String) -> Result<()> {
+    info!("reading public key {}", public_key_path);
     let public_file_content = get_file_as_byte_vec(public_key_path)?;
+    info!("public file content : {:?}", &public_file_content);
 
     let o = filepath.clone() + "x";
     encrypt_file_with_inmemory_key(filepath, &o, &public_file_content)?;
