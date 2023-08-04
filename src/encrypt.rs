@@ -8,7 +8,8 @@ use std::io::{Read, Write};
 
 use crate::Result;
 
-const BLOCK_SIZE: usize = 4096 / 16;
+const KEY_SIZE: usize = 1024;
+const BLOCK_SIZE: usize = KEY_SIZE / 16;
 
 pub fn get_file_as_byte_vec(filename: &String) -> Result<Vec<u8>> {
     let mut f = File::open(filename)?;

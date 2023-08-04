@@ -3,6 +3,8 @@
 mod test_encryption {
     // Note this useful idiom: importing names from outer (for mod tests) scope.
 
+    use std::time::{Duration, Instant};
+
     use encrypter::encrypt::*;
 
     fn encrypt_decrypt(midi_file: String) {
@@ -29,9 +31,11 @@ mod test_encryption {
     #[test]
     fn test_encrypt() {
         env_logger::init();
-
+        
+        let start = Instant::now();
         let midi_file: String = "lalala1.mid".into();
         encrypt_decrypt(midi_file);
-        // encrypt_decrypt("113-BennyHill.mid".into());
+        //encrypt_decrypt("113-BennyHill.mid".into());
+        println!("timed encrypt / decrypt {:?}", (Instant::now() - start))
     }
 }
