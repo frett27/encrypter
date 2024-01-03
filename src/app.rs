@@ -80,6 +80,9 @@ pub struct EncrypterApp {
 
     #[serde(skip)]
     file_path_dialog: ImNativeFileDialog<Option<PathBuf>>,
+
+    #[serde(skip)]
+    i18n: crate::i18n::I18NMessages,
 }
 
 impl Default for EncrypterApp {
@@ -114,6 +117,7 @@ impl Default for EncrypterApp {
             flower: TypedFlower::new(1),
             file_path: PathBuf::from("."),
             file_path_dialog: im_native_dialog::ImNativeFileDialog::default(),
+            i18n: crate::i18n::create_french_messages(),
         }
     }
 }
@@ -306,30 +310,44 @@ impl EncrypterApp {
                 let response_result =
                     isahc::get("http://or1.frett27.net/k/".to_string() + &sha1 + "/public.key.pem");
 
-                if let Ok(mut response) = response_result {
-                    if response.status().is_success() {
-                        let text = response.text(); // read response
+                match response_result {
+                    Ok(mut response) => {
+                        if response.status().is_success() {
+                            let text = response.text(); // read response
 
-                        if let Ok(returned_elements) = text {
-                            // Set result and then extract later.
-                            handle.set_result(Ok(returned_elements));
+                            match text {
+                                Ok(returned_elements) => {
+                                    // Set result and then extract later.
+                                    handle.set_result(Ok(returned_elements));
+                                }
+                                Err(e) => {
+                                    handle.set_result(Err(Box::new(AppError::new(format!(
+                                        "Erreur dans la récupération du contenu de la clé : {:?}",
+                                        e
+                                    )))));
+                                }
+                            }
                         } else {
-                            handle.set_result(Err(Box::new(AppError::new(
-                                "Erreur dans la récupération du contenu de la clé",
-                            ))));
+                            handle.set_result(Err(Box::new(AppError::new(format!(
+                "Le serveur a retourné un pb, la clé n'existe peut être pas : {:?} -> {:?}", 
+                    response.status(), response.body()
+            )))));
                         }
-                    } else {
-                        handle.set_result(Err(Box::new(AppError::new(
-                            "Le serveur a retourné un pb, la clé n'existe peut être pas",
-                        ))));
                     }
-                } else {
-                    handle.set_result(Err(Box::new(AppError::new(
-                        "Erreur dans le lancement de la requete",
-                    ))));
+                    Err(e) => {
+                        handle.set_result(Err(Box::new(AppError::new(format!(
+                            "Erreur dans le lancement de la requete : {:?}",
+                            e
+                        )))));
+                    }
                 }
             }
         });
+    }
+
+    fn clean_message(&mut self) {
+        self.last_message = "".into();
+        self.is_error = false;
     }
 }
 
@@ -354,6 +372,7 @@ impl eframe::App for EncrypterApp {
             flower: _,
             file_path_dialog: _,
             file_path: _,
+            i18n,
         } = self;
 
         if let Some(result) = self.file_path_dialog.check() {
@@ -387,8 +406,8 @@ impl eframe::App for EncrypterApp {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             // The top panel is often a good place for a menu bar:
             egui::menu::bar(ui, |ui| {
-                ui.menu_button("File", |ui| {
-                    if ui.button("Open folder ...").clicked() {
+                ui.menu_button(format!("{}", &i18n.file), |ui| {
+                    if ui.button(&i18n.open_folder).clicked() {
                         let location = self
                             .file_path
                             .parent()
@@ -405,46 +424,73 @@ impl eframe::App for EncrypterApp {
                         _frame.close();
                     }
                 });
+
+                ui.menu_button("Clefs",|ui| {
+                    // ajout de clef
+                    if ui.button("Ajouter ..").clicked() {
+                        self.is_add_opened = true;
+                    }
+
+                });
+
+
             });
         });
 
+        // folder tree display
         egui::SidePanel::left("side_panel")
             .exact_width(500.0)
             .show(ctx, |ui| {
-                egui::ScrollArea::both().show(ui, |ui| {
-                    StripBuilder::new(ui)
-                        .size(Size::remainder())
-                        .horizontal(|mut strip| {
-                            strip.cell(|ui| {
-                                if let Err(e) =
-                                    EncrypterApp::display_tree(&mut self.files_folder, ui)
-                                {
-                                    error!("error in display tree: {}", e);
-                                }
+                ui.vertical(|ui| {
+                    ui.label("Selectionnez les fichiers: ");
+                    ui.separator();
+
+                    egui::ScrollArea::both().show(ui, |ui| {
+                        StripBuilder::new(ui)
+                            .size(Size::remainder())
+                            .horizontal(|mut strip| {
+                                strip.cell(|ui| {
+                                    if let Err(e) =
+                                        EncrypterApp::display_tree(&mut self.files_folder, ui)
+                                    {
+                                        error!("error in display tree: {}", e);
+                                    }
+                                });
                             });
-                        });
-                });
+                    });
+                })
             });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                egui::ComboBox::from_label("Clés de chiffrage")
-                    .selected_text(format!("{:?}", self.selected))
-                    .width(300.0)
-                    .show_ui(ui, |ui| {
-                        let keys = self.db.get_all().expect("fail to get keys");
-                        for k in keys.iter() {
-                            ui.selectable_value(&mut self.selected, Some(k.clone()), &k.name);
-                        }
-                    });
-                if ui.button("Ajouter ..").clicked() {
-                    self.is_add_opened = true;
-                }
-            });
-
-            ui.separator();
-
             egui::ScrollArea::both().show(ui, |ui| {
+                ui.horizontal(|ui| {
+
+                    // selected text
+                    let mut selectable_text: String = "".into();
+                    if let Some(v) = &self.selected {
+                        selectable_text = text_representation(&v);
+                    }
+
+                    let choice_key = egui::ComboBox::from_label("Clés de chiffrage")
+                        .selected_text(format!("{}", &selectable_text))
+                        .width(300.0)
+                        .show_ui(ui, |ui| {
+                            let keys = self.db.get_all().expect("fail to get keys");
+                            for k in keys.iter() {
+                                ui.selectable_value(
+                                    &mut self.selected,
+                                    Some(k.clone()),
+                                    text_representation(k),
+                                );
+                            }
+                        });
+                    if choice_key.response.changed() {
+                        self.clean_message();
+                    }
+
+                 
+                });
+
                 ui.group(|ui| {
                     ui.label("Liste des fichiers sélectionnés :");
                     ui.separator();
@@ -456,8 +502,11 @@ impl eframe::App for EncrypterApp {
                 );
                 if let Some(selected_key) = &self.selected {
                     if ui.add(button_crypt).clicked() {
-                        info!("Chiffrage des fichiers");
+                        // reset the last_message
+                        self.last_message = "".into();
+                        self.is_error = false;
 
+                        info!("Chiffrage des fichiers");
                         if let Some(kvalue) = &selected_key.public_key {
                             match EncrypterApp::crypt_selected(
                                 &self.files_folder,
@@ -471,7 +520,8 @@ impl eframe::App for EncrypterApp {
                                     self.is_error = false;
                                 }
                                 Err(e) => {
-                                    self.last_message = "Erreur dans le chiffrage".into();
+                                    self.last_message =
+                                        format!("Erreur dans le chiffrage : {:?}", &e).into();
                                     self.is_error = true;
                                     error!("Error in crypt : {:?}", e);
                                 }
@@ -487,6 +537,7 @@ impl eframe::App for EncrypterApp {
                     //    .on_hover_text("Sélectionnez une clé de cryptage");
                 }
 
+                // display the last message
                 if !&self.last_message.is_empty() {
                     let mut rt = RichText::new(&self.last_message);
                     if self.is_error {

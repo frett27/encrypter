@@ -10,6 +10,8 @@ pub mod folder;
 
 pub mod keys_management;
 
+pub mod i18n;
+
 use std::error;
 use std::fmt;
 use std::str;
