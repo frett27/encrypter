@@ -24,7 +24,7 @@ pub struct Key {
 }
 
 pub fn text_representation(k: &Key) -> String {
-    (String::from("") + &k.name + " (" + &k.sha1 + ")").into()
+    String::from("") + &k.name + " (" + &k.sha1 + ")"
 }
 
 impl Display for Key {

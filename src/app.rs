@@ -406,7 +406,7 @@ impl eframe::App for EncrypterApp {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             // The top panel is often a good place for a menu bar:
             egui::menu::bar(ui, |ui| {
-                ui.menu_button(format!("{}", &i18n.file), |ui| {
+                ui.menu_button((i18n.file).to_string(), |ui| {
                     if ui.button(&i18n.open_folder).clicked() {
                         let location = self
                             .file_path
@@ -425,15 +425,12 @@ impl eframe::App for EncrypterApp {
                     }
                 });
 
-                ui.menu_button("Clefs",|ui| {
+                ui.menu_button("Clefs", |ui| {
                     // ajout de clef
                     if ui.button("Ajouter ..").clicked() {
                         self.is_add_opened = true;
                     }
-
                 });
-
-
             });
         });
 
@@ -464,15 +461,14 @@ impl eframe::App for EncrypterApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             egui::ScrollArea::both().show(ui, |ui| {
                 ui.horizontal(|ui| {
-
                     // selected text
                     let mut selectable_text: String = "".into();
                     if let Some(v) = &self.selected {
-                        selectable_text = text_representation(&v);
+                        selectable_text = text_representation(v);
                     }
 
                     let choice_key = egui::ComboBox::from_label("Clés de chiffrage")
-                        .selected_text(format!("{}", &selectable_text))
+                        .selected_text(selectable_text.to_string())
                         .width(300.0)
                         .show_ui(ui, |ui| {
                             let keys = self.db.get_all().expect("fail to get keys");
@@ -487,8 +483,6 @@ impl eframe::App for EncrypterApp {
                     if choice_key.response.changed() {
                         self.clean_message();
                     }
-
-                 
                 });
 
                 ui.group(|ui| {
@@ -521,7 +515,7 @@ impl eframe::App for EncrypterApp {
                                 }
                                 Err(e) => {
                                     self.last_message =
-                                        format!("Erreur dans le chiffrage : {:?}", &e).into();
+                                        format!("Erreur dans le chiffrage : {:?}", &e);
                                     self.is_error = true;
                                     error!("Error in crypt : {:?}", e);
                                 }
