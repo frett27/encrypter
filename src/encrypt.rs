@@ -8,6 +8,7 @@ use std::io::{Read, Write};
 
 use crate::Result;
 
+// encoding blocks
 const KEY_SIZE: usize = 1024;
 const BLOCK_SIZE: usize = KEY_SIZE / 16;
 
@@ -21,6 +22,7 @@ pub fn get_file_as_byte_vec(filename: &String) -> Result<Vec<u8>> {
     Ok(buffer)
 }
 
+/// encrypt file using a public key path
 pub fn encrypt_file(filepath: &String, public_key_path: &String) -> Result<()> {
     info!("reading public key {}", public_key_path);
     let public_file_content = get_file_as_byte_vec(public_key_path)?;
@@ -31,6 +33,7 @@ pub fn encrypt_file(filepath: &String, public_key_path: &String) -> Result<()> {
     Ok(())
 }
 
+/// encrypt file using an inmemory public key
 pub fn encrypt_file_with_inmemory_key(
     filepath: &String,
     output_file: &String,
@@ -85,6 +88,7 @@ pub fn encrypt_file_with_inmemory_key(
     Ok(())
 }
 
+/// decrypt file using a private key file
 pub fn decrypt_file(
     filepath: String,
     private_key_path: String,

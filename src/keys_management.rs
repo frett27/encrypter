@@ -23,6 +23,10 @@ pub struct Key {
     pub public_key: Option<Vec<u8>>,
 }
 
+pub fn text_representation(k: &Key) -> String {
+    String::from("") + &k.name + " (" + &k.sha1 + ")"
+}
+
 impl Display for Key {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&self.name)?;
