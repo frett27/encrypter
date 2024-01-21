@@ -452,9 +452,9 @@ impl eframe::App for EncrypterApp {
                     }
                 });
 
-                ui.menu_button("Clefs", |ui| {
+                ui.menu_button("Clés", |ui| {
                     // ajout de clef
-                    if ui.button("Ajouter ..").clicked() {
+                    if ui.button("Ajouter ou mettre à jour une clé ..").clicked() {
                         self.key_name = "".into();
                         self.key_sha1_input = "".into();
                         self.key_error_message = "".into();
@@ -494,7 +494,10 @@ impl eframe::App for EncrypterApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             egui::ScrollArea::both().show(ui, |ui| {
                 ui.horizontal(|ui| {
-                    ui.label("2 - Sélectionnez la clef de chiffrage");
+                    ui.label("2 - Sélectionnez la clé de chiffrage")
+                        .on_hover_text(
+                            "Si la clef n'existe pas, vous pouvez l'ajouter avec le menu",
+                        );
                 });
                 ui.separator();
                 ui.horizontal(|ui| {
@@ -504,22 +507,26 @@ impl eframe::App for EncrypterApp {
                         selectable_text = text_representation(v);
                     }
 
-                    let choice_key = egui::ComboBox::from_label("Clé de chiffrage")
-                        .selected_text(selectable_text.to_string())
-                        .width(300.0)
-                        .show_ui(ui, |ui| {
-                            let keys = self.db.get_all().expect("fail to get keys");
-                            for k in keys.iter() {
-                                ui.selectable_value(
-                                    &mut self.selected,
-                                    Some(k.clone()),
-                                    text_representation(k),
-                                );
-                            }
-                        });
-                    if choice_key.response.changed() {
-                        self.clean_message();
-                    }
+                    ui.horizontal(|ui| {
+                        ui.label("Clé de chiffrement :");
+
+                        let choice_key = egui::ComboBox::from_label("")
+                            .selected_text(selectable_text.to_string())
+                            .width(300.0)
+                            .show_ui(ui, |ui| {
+                                let keys = self.db.get_all().expect("fail to get keys");
+                                for k in keys.iter() {
+                                    ui.selectable_value(
+                                        &mut self.selected,
+                                        Some(k.clone()),
+                                        text_representation(k),
+                                    );
+                                }
+                            });
+                        if choice_key.response.changed() {
+                            self.clean_message();
+                        }
+                    });
                 });
 
                 ui.group(|ui| {
@@ -598,7 +605,7 @@ impl eframe::App for EncrypterApp {
             egui::Window::new("Ajouter une carte").show(ctx, |ui| {
                 ui.vertical(|ui| {
                     ui.horizontal(|ui| {
-                        ui.label("Sha1 clé");
+                        ui.label("Sha1 de l'instument / ou de la clé");
                         ui.text_edit_singleline(&mut self.key_sha1_input);
                     });
 
@@ -610,12 +617,12 @@ impl eframe::App for EncrypterApp {
                     ui.horizontal(|ui| {
                         ui.checkbox(
                             &mut self.key_search_key_internet,
-                            "Récupérer la clef sur internet",
+                            "Récupérer la clé sur internet",
                         );
                     });
                     if !self.key_search_key_internet {
                         ui.horizontal(|ui| {
-                            ui.label("Clef Publique :");
+                            ui.label("Clé Publique :");
                             ui.text_edit_multiline(&mut self.key_public_key);
                         });
                     }
@@ -645,7 +652,7 @@ impl eframe::App for EncrypterApp {
 
                         if keysrc.trim().len() != 40 {
                             self.key_error_message =
-                                "le sha1 de la clef doit avoir 40 characteres".into();
+                                "le sha1 de la clé doit avoir 40 characteres".into();
                             self.key_is_error = true;
                             return;
                         }
@@ -656,12 +663,12 @@ impl eframe::App for EncrypterApp {
                             // check the public key,
                             if self.key_public_key.trim().is_empty() {
                                 self.key_error_message =
-                                    "vous devez saisir une clef publique".into();
+                                    "vous devez saisir une clé publique".into();
                                 self.key_is_error = true;
                             } else if let Err(_e) = check_public_key(self.key_public_key.as_bytes())
                             {
                                 self.key_error_message =
-                                    "la clef publique est invalide, vérifiez la".into();
+                                    "la clé publique est invalide, vérifiez la".into();
                                 self.key_is_error = true;
                             } else {
                                 // ok, record the key into db
