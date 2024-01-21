@@ -1,4 +1,5 @@
 use egui::Button;
+use egui::Label;
 use log::{error, info};
 
 use std::fmt;
@@ -471,7 +472,7 @@ impl eframe::App for EncrypterApp {
             .exact_width(500.0)
             .show(ctx, |ui| {
                 ui.vertical(|ui| {
-                    ui.label("Selectionnez les fichiers: ");
+                    ui.label("1 - Selectionnez les fichiers à chiffrer");
                     ui.separator();
 
                     egui::ScrollArea::both().show(ui, |ui| {
@@ -492,6 +493,10 @@ impl eframe::App for EncrypterApp {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             egui::ScrollArea::both().show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    ui.label("2 - Sélectionnez la clef de chiffrage");
+                });
+                ui.separator();
                 ui.horizontal(|ui| {
                     // selected text
                     let mut selectable_text: String = "".into();
@@ -524,7 +529,7 @@ impl eframe::App for EncrypterApp {
                 });
 
                 let button_crypt = egui::Button::new(
-                    RichText::new("Chiffrer les fichiers sélectionnés").color(Color32::BLUE),
+                    RichText::new("3 - Chiffrer les fichiers sélectionnés").color(Color32::BLUE),
                 );
                 if let Some(selected_key) = &self.selected {
                     if ui.add(button_crypt).clicked() {
@@ -553,13 +558,15 @@ impl eframe::App for EncrypterApp {
                                 }
                             };
 
-                            let r = FolderNode {
+                            let mut r = FolderNode {
                                 expanded: false,
                                 is_folder: true,
                                 path: ".".into(),
                                 subfolders: vec![],
                                 selected: false,
                             };
+
+                            let _ = expand(&mut r);
 
                             self.files_folder = r;
                         } else {
