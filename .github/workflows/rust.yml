@@ -90,7 +90,7 @@ jobs:
 
           
   create-release:
-    name: Create Release
+    name: Create release
     runs-on: ubuntu-latest
     permissions: write-all
     needs: [linuxbuild, winbuild]
@@ -134,7 +134,7 @@ jobs:
       with:
         upload_url: ${{ steps.create-release.outputs.upload_url }}
         asset_path: encrypter
-        asset_name: ubuntu-encrypter
+        asset_name: ubuntu-encrypter-{{ github.ref_name }}
         asset_content_type: application/x-binary
 
 
@@ -146,6 +146,6 @@ jobs:
       with:
         upload_url: ${{ steps.create-release.outputs.upload_url }}
         asset_path: encrypter.exe
-        asset_name: windows-encrypter.exe
+        asset_name: windows-encrypter-{{ github.ref_name }}.exe
         asset_content_type: application/x-binary
 
