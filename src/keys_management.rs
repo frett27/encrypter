@@ -1,6 +1,8 @@
+use core::fmt;
 use egui::mutex::RwLock;
 use rusqlite::*;
 use rusqlite::{Connection, Result};
+use std::error::Error;
 use std::fmt::{Debug, Display};
 
 /// this module manage keys,
@@ -13,6 +15,23 @@ use log::{debug, error, info, log_enabled, Level};
 
 pub struct Database {
     db: Arc<RwLock<Connection>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct KeyManagementError {
+    message: String,
+}
+
+impl fmt::Display for KeyManagementError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "KeyError: {}", &self.message)
+    }
+}
+
+impl Error for KeyManagementError {
+    fn description(&self) -> &str {
+        self.message.as_str()
+    }
 }
 
 #[derive(PartialEq, Eq, Clone)]
@@ -69,7 +88,12 @@ impl Database {
         })
     }
 
-    pub fn insert(&self, k: &Key) -> Result<()> {
+    pub fn insert(&self, k: &Key) -> Result<(), Box<dyn Error>> {
+        if k.sha1.len() != 40 {
+            let s: String = "l'identifiant de la clef doit avoir 40 caractères".into();
+            return Err(Box::new(KeyManagementError { message: s }));
+        }
+
         let c = self.db.read();
         c.execute(
             "INSERT or REPLACE INTO all_keys (name, sha1, public_key) VALUES (?1, ?2, ?3)",

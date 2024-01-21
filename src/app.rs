@@ -1,9 +1,11 @@
+use egui::Button;
 use log::{error, info};
 
 use std::fmt;
 use std::path::Path;
 use std::path::PathBuf;
 
+use crate::encrypt::check_public_key;
 use crate::encrypt::encrypt_file_with_inmemory_key;
 use crate::folder;
 use crate::folder::*;
@@ -68,10 +70,25 @@ pub struct EncrypterApp {
     #[serde(skip)]
     is_error: bool,
 
+    // dialog for adding keys
+    #[serde(skip)]
     is_add_opened: bool,
+    #[serde(skip)]
     key_name: String,
+    #[serde(skip)]
     key_sha1_input: String,
 
+    #[serde(skip)]
+    key_search_key_internet: bool,
+    #[serde(skip)]
+    key_public_key: String,
+
+    #[serde(skip)]
+    key_error_message: String,
+    #[serde(skip)]
+    key_is_error: bool,
+
+    // async grab key from internet
     #[serde(skip)]
     flower: TypedFlower,
 
@@ -114,6 +131,11 @@ impl Default for EncrypterApp {
             is_add_opened: false,
             key_name: "".to_owned(),
             key_sha1_input: "".to_owned(),
+            key_public_key: "".to_owned(),
+            key_search_key_internet: true,
+            key_error_message: "".to_owned(),
+            key_is_error: false,
+
             flower: TypedFlower::new(1),
             file_path: PathBuf::from("."),
             file_path_dialog: im_native_dialog::ImNativeFileDialog::default(),
@@ -369,6 +391,10 @@ impl eframe::App for EncrypterApp {
             is_add_opened: _,
             key_sha1_input: _,
             key_name: _,
+            key_public_key: _,
+            key_error_message: _,
+            key_search_key_internet: _,
+            key_is_error: _,
             flower: _,
             file_path_dialog: _,
             file_path: _,
@@ -428,6 +454,12 @@ impl eframe::App for EncrypterApp {
                 ui.menu_button("Clefs", |ui| {
                     // ajout de clef
                     if ui.button("Ajouter ..").clicked() {
+                        self.key_name = "".into();
+                        self.key_sha1_input = "".into();
+                        self.key_error_message = "".into();
+                        self.key_is_error = false;
+                        self.key_public_key = "".into();
+                        self.key_search_key_internet = true;
                         self.is_add_opened = true;
                     }
                 });
@@ -467,7 +499,7 @@ impl eframe::App for EncrypterApp {
                         selectable_text = text_representation(v);
                     }
 
-                    let choice_key = egui::ComboBox::from_label("Clés de chiffrage")
+                    let choice_key = egui::ComboBox::from_label("Clé de chiffrage")
                         .selected_text(selectable_text.to_string())
                         .width(300.0)
                         .show_ui(ui, |ui| {
@@ -520,6 +552,16 @@ impl eframe::App for EncrypterApp {
                                     error!("Error in crypt : {:?}", e);
                                 }
                             };
+
+                            let r = FolderNode {
+                                expanded: false,
+                                is_folder: true,
+                                path: ".".into(),
+                                subfolders: vec![],
+                                selected: false,
+                            };
+
+                            self.files_folder = r;
                         } else {
                             self.last_message = "no public key".into();
                             self.is_error = true;
@@ -557,15 +599,87 @@ impl eframe::App for EncrypterApp {
                         ui.label("Nom de la clé");
                         ui.text_edit_singleline(&mut self.key_name);
                     });
+
+                    ui.horizontal(|ui| {
+                        ui.checkbox(
+                            &mut self.key_search_key_internet,
+                            "Récupérer la clef sur internet",
+                        );
+                    });
+                    if !self.key_search_key_internet {
+                        ui.horizontal(|ui| {
+                            ui.label("Clef Publique :");
+                            ui.text_edit_multiline(&mut self.key_public_key);
+                        });
+                    }
                 });
 
+                if !self.key_error_message.is_empty() {
+                    ui.horizontal(|ui| {
+                        let mut rt = RichText::new(&self.key_error_message);
+                        if self.key_is_error {
+                            rt = rt.color(Color32::RED);
+                        }
+                        ui.label(rt);
+                    });
+                }
+
+                let keysrc: String = self.key_sha1_input.trim().into();
+
                 ui.horizontal(|ui| {
-                    if ui.button("Ajouter").clicked() {
+                    if ui
+                        .add_enabled(!f.is_active(), Button::new("Ajouter"))
+                        .clicked()
+                    {
                         println!("Ajout de la carte dans la liste");
 
-                        EncrypterApp::download_key(f, self.key_sha1_input.clone());
-                    }
-                    if ui.button("Annuler").clicked() {
+                        self.key_error_message = "".into();
+                        self.key_is_error = false;
+
+                        if keysrc.trim().len() != 40 {
+                            self.key_error_message =
+                                "le sha1 de la clef doit avoir 40 characteres".into();
+                            self.key_is_error = true;
+                            return;
+                        }
+
+                        if self.key_search_key_internet {
+                            EncrypterApp::download_key(f, self.key_sha1_input.clone());
+                        } else {
+                            // check the public key,
+                            if self.key_public_key.trim().is_empty() {
+                                self.key_error_message =
+                                    "vous devez saisir une clef publique".into();
+                                self.key_is_error = true;
+                            } else if let Err(_e) = check_public_key(self.key_public_key.as_bytes())
+                            {
+                                self.key_error_message =
+                                    "la clef publique est invalide, vérifiez la".into();
+                                self.key_is_error = true;
+                            } else {
+                                // ok, record the key into db
+                                let new_key = Key {
+                                    rowid: 0,
+                                    name: self.key_name.clone(),
+                                    sha1: keysrc.clone(),
+                                    public_key: Some(self.key_public_key.as_bytes().to_vec()),
+                                };
+
+                                if let Ok(_r) = self.db.insert(&new_key) {
+                                    self.key_error_message =
+                                        "clé ".to_string() + &keysrc + " récupérée, et enregistrée";
+                                    self.key_is_error = false;
+                                } else {
+                                    self.key_error_message = "clé ".to_string()
+                                        + &keysrc
+                                        + " non sauvegardée, erreur dans l'écriture";
+                                    self.key_is_error = true;
+                                }
+                            }
+                        }
+                    };
+
+                    if ui.button("Fermer").clicked() {
                         self.is_add_opened = false;
                     }
 
@@ -575,9 +689,9 @@ impl eframe::App for EncrypterApp {
                             match result {
                                 Ok(value) => {
                                     println!("success dans la récupération des clés : {:?}", value);
-                                    self.last_message =
-                                        "clé ".to_string() + &self.key_sha1_input + " récupérée";
-                                    self.is_error = false;
+                                    self.key_error_message =
+                                        "clé ".to_string() + &keysrc + " récupérée";
+                                    self.key_is_error = false;
 
                                     let new_key = Key {
                                         rowid: 0,
@@ -587,28 +701,26 @@ impl eframe::App for EncrypterApp {
                                     };
 
                                     if let Ok(_r) = self.db.insert(&new_key) {
-                                        self.last_message = "clé ".to_string()
+                                        self.key_error_message = "clé ".to_string()
                                             + &self.key_sha1_input
                                             + " récupérée, et sauvegardées";
-                                        self.is_error = false;
+                                        self.key_is_error = false;
                                     } else {
-                                        self.last_message = "clé ".to_string()
+                                        self.key_error_message = "clé ".to_string()
                                             + &self.key_sha1_input
                                             + " non sauvegardée, erreur dans l'écriture";
-                                        self.is_error = true;
+                                        self.key_is_error = true;
                                     }
-
-                                    self.is_add_opened = false;
                                 }
                                 Err(Cause::Suppose(msg)) => {
                                     println!("{}", msg);
-                                    self.last_message = msg;
-                                    self.is_error = true;
+                                    self.key_error_message = msg;
+                                    self.key_is_error = true;
                                 }
                                 Err(Cause::Panicked(_msg)) => {
                                     // Handle things if stuff unexpectedly panicked at runtime.
-                                    self.last_message = _msg;
-                                    self.is_error = true;
+                                    self.key_error_message = _msg;
+                                    self.key_is_error = true;
                                 }
                             }
                         });

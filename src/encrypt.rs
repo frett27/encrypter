@@ -33,6 +33,12 @@ pub fn encrypt_file(filepath: &String, public_key_path: &String) -> Result<()> {
     Ok(())
 }
 
+pub fn check_public_key(public_key_content: &[u8]) -> Result<()> {
+    let _rsa_key = Rsa::public_key_from_pem_pkcs1(public_key_content)?;
+    info!("public key successfully read");
+    Ok(())
+}
+
 /// encrypt file using an inmemory public key
 pub fn encrypt_file_with_inmemory_key(
     filepath: &String,
