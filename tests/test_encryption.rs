@@ -28,10 +28,11 @@ mod test_encryption {
             assert!(*i == dest[index]);
         }
     }
+
     #[test]
     fn test_encrypt() {
         env_logger::init();
-        
+
         let start = Instant::now();
         let midi_file: String = "lalala1.mid".into();
         encrypt_decrypt(midi_file);

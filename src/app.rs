@@ -1,5 +1,4 @@
 use egui::Button;
-use egui::Label;
 use log::{error, info};
 
 use std::fmt;
@@ -263,6 +262,17 @@ impl EncrypterApp {
             if ele.is_folder {
                 let r = ui.collapsing(element_name, |ui| {
                     ui.spacing_mut().item_spacing.x = 0.0;
+                    if ui
+                        .button("Selectionner tous les fichiers du répertoire")
+                        .clicked()
+                    {
+                        // handle selection
+                        for e in &mut ele.subfolders {
+                            if !e.is_folder {
+                                e.selected = true;
+                            }
+                        }
+                    }
 
                     if let Err(e) = EncrypterApp::display_tree(ele, ui) {
                         error!("error in displaying sub tree {}", e);
