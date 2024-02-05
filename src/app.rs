@@ -291,8 +291,11 @@ impl EncrypterApp {
     fn construct_list(file_folder: &mut FolderNode, ui: &mut Ui) {
         if file_folder.selected {
             let name_clone = (*file_folder.name()).to_string().clone();
-            ui.checkbox(&mut file_folder.selected, RichText::new(name_clone).color(Color32::DARK_BLUE));
-           //  ui.label();
+            ui.checkbox(
+                &mut file_folder.selected,
+                RichText::new(name_clone).color(Color32::DARK_BLUE),
+            );
+            //  ui.label();
         }
         for elem in file_folder.subfolders.iter_mut() {
             EncrypterApp::construct_list(elem, ui);

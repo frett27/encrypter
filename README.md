@@ -5,9 +5,11 @@ Le module OR1, est un boitier electronique (serinette, permettant de jouer des m
 [https://www.barrel-organ-discovery.org/or1/](https://www.barrel-organ-discovery.org/or1/)
 
 
-![](doc/2023-04-16_gui.png)
+![](doc/2024-02-05_gui.png)
 
 
 ## Changelog
    - ajout du choix du répertoire
+   - ajout de la définition des clés par texte (cles RSA)
+   - amélioration d'interface graphique
 
