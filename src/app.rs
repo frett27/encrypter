@@ -288,11 +288,13 @@ impl EncrypterApp {
         Ok(())
     }
 
-    fn construct_list(file_folder: &FolderNode, ui: &mut Ui) {
+    fn construct_list(file_folder: &mut FolderNode, ui: &mut Ui) {
         if file_folder.selected {
-            ui.label(RichText::new(file_folder.clone().name()).color(Color32::DARK_BLUE));
+            let name_clone = (*file_folder.name()).to_string().clone();
+            ui.checkbox(&mut file_folder.selected, RichText::new(name_clone).color(Color32::DARK_BLUE));
+           //  ui.label();
         }
-        for elem in &file_folder.subfolders {
+        for elem in file_folder.subfolders.iter_mut() {
             EncrypterApp::construct_list(elem, ui);
         }
     }
@@ -504,7 +506,7 @@ impl eframe::App for EncrypterApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             egui::ScrollArea::both().show(ui, |ui| {
                 ui.horizontal(|ui| {
-                    ui.label("2 - Sélectionnez la clé de chiffrage")
+                    ui.label("2 - Sélectionnez la clé de chiffrement")
                         .on_hover_text(
                             "Si la clef n'existe pas, vous pouvez l'ajouter avec le menu",
                         );
@@ -518,11 +520,11 @@ impl eframe::App for EncrypterApp {
                     }
 
                     ui.horizontal(|ui| {
-                        ui.label("Clé de chiffrement :");
+                        ui.label("Clé :");
 
                         let choice_key = egui::ComboBox::from_label("")
                             .selected_text(selectable_text.to_string())
-                            .width(300.0)
+                            .width(800.0)
                             .show_ui(ui, |ui| {
                                 let keys = self.db.get_all().expect("fail to get keys");
                                 for k in keys.iter() {
@@ -542,7 +544,7 @@ impl eframe::App for EncrypterApp {
                 ui.group(|ui| {
                     ui.label("Liste des fichiers sélectionnés :");
                     ui.separator();
-                    EncrypterApp::construct_list(&self.files_folder, ui);
+                    EncrypterApp::construct_list(&mut self.files_folder, ui);
                 });
 
                 let button_crypt = egui::Button::new(
